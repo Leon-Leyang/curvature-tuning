@@ -3,7 +3,7 @@ from torch import nn
 
 
 class CT(nn.Module):
-    def __init__(self, beta=0, coeff=0.5, threshold=20, trainable=False):
+    def __init__(self, beta=0., coeff=0.5, threshold=20, trainable=False):
         assert 0 <= beta < 1
         super().__init__()
         self.beta = nn.Parameter(torch.tensor(beta))
