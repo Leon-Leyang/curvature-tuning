@@ -1,3 +1,6 @@
+"""
+This file is for utility functions used across the project.
+"""
 import os
 import sys
 import torchvision
@@ -40,7 +43,7 @@ def get_pretrained_model(pretrained_ds='cifar100', model_name='resnet18'):
     """
     Get the pre-trained model.
     """
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 
     name_to_model = {
         'resnet18': resnet18,
@@ -106,9 +109,7 @@ def get_file_name(calling_file):
     return os.path.splitext(file_name)[0]
 
 
-def result_exists(ds, replace_then_lp=False, robustness_test=None):
-    if replace_then_lp:
-        ds = f'{ds}_replace_lp'
+def result_exists(ds, robustness_test=None):
     log_file = get_log_file_path()
     if not os.path.exists(log_file):
         return False
@@ -152,7 +153,7 @@ def get_log_file_path():
     return file_paths[0]
 
 
-def plot_acc_vs_beta(acc_list, beta_list, base_acc, dataset, model_name, robust_config=None):
+def plot_metric_vs_beta(acc_list, beta_list, base_acc, dataset, model_name, robust_config=None, metric='Accuracy'):
     if '/' in dataset:      # Hack to handle med_mnist/pathmnist
         dataset = dataset.split('/')[0]
 
@@ -161,8 +162,8 @@ def plot_acc_vs_beta(acc_list, beta_list, base_acc, dataset, model_name, robust_
     plt.plot(beta_list, acc_list)
     plt.axhline(y=base_acc, color='r', linestyle='--', label='ReLU Test Accuracy')
     plt.xlabel('Beta')
-    plt.ylabel('Test Accuracy')
-    plt.title('Test Accuracy vs Beta Values')
+    plt.ylabel(f'Test {metric}')
+    plt.title(f'Test {metric} vs Beta Values')
 
     # Ensure that both x-axis and y-axis show raw numbers without offset or scientific notation
     ax = plt.gca()

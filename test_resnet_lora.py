@@ -1,7 +1,10 @@
+"""
+This file is for counting the number of trainable parameters in a ResNet with or without LoRA.
+"""
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision.models import resnet18, resnet50, resnet152
+from torchvision.models import *
 
 
 # -----------------------
@@ -168,10 +171,6 @@ def count_trainable_parameters(model: nn.Module) -> int:
 
 
 if __name__ == "__main__":
-    # -------------
-    # Example Usage
-    # -------------
-
     # Load pretrained ResNet152
     model = resnet50()
 
@@ -193,8 +192,3 @@ if __name__ == "__main__":
     print(f"LoRA rank = {lora_rank}")
     print(f"Total parameters in model: {total_params:,}")
     print(f"Trainable parameters (LoRA): {trainable_params:,}")
-
-    # Example forward pass (just to confirm shapes work):
-    dummy_input = torch.randn(1, 3, 224, 224)
-    output = model(dummy_input)
-    print(f"Output shape: {output.shape}")

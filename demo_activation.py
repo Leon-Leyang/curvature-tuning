@@ -1,3 +1,7 @@
+"""
+This file plots our activation function for different values of beta.
+"""
+import os
 import torch
 import matplotlib.pyplot as plt
 from utils.curvature_tuning import CT
@@ -14,7 +18,7 @@ cmap = plt.colormaps["Dark2"]
 colors = [cmap(0), cmap(1), cmap(2)]
 
 for idx, b in enumerate(betas):
-    # Instantiate BetaAgg with the current beta
+    # Instantiate CT with the current beta
     activation = CT(beta=b)
 
     # Forward pass: compute the output for all x_vals
@@ -34,5 +38,6 @@ plt.legend(fontsize=fontsize)
 plt.xticks([-0.6, -0.3, 0, 0.3, 0.6], fontsize=fontsize)
 plt.yticks([0, 0.15, 0.3, 0.45, 0.6], fontsize=fontsize)
 plt.grid(True)
+os.makedirs('./figures', exist_ok=True)
 plt.savefig("./figures/demo_act.svg", bbox_inches="tight")
 plt.show()

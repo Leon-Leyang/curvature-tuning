@@ -1,13 +1,10 @@
-"""resnet in pytorch
-
-
-
+"""
+This file defines ResNet in PyTorch.
 [1] Kaiming He, Xiangyu Zhang, Shaoqing Ren, Jian Sun.
 
     Deep Residual Learning for Image Recognition
     https://arxiv.org/abs/1512.03385v1
 """
-
 import torch
 import torch.nn as nn
 from torchvision.models import vgg19 as torchvision_vgg19
@@ -159,10 +156,3 @@ def resnet152(num_classes=100):
     """ return a ResNet 152 object
     """
     return ResNet(BottleNeck, [3, 8, 36, 3], num_classes=num_classes)
-
-def vgg19(num_classes=100):
-    """ return a VGG 19 object
-    """
-    model = torchvision_vgg19()
-    model.classifier[-1] = nn.Linear(4096, num_classes)
-    return model

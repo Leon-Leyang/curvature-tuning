@@ -1,66 +1,39 @@
-import copy
+"""
+This script evaluates the robustness improvement achieved by CT across various datasets and attacks.
+"""
 import os
 from pathlib import Path
 import torch
 import numpy as np
+from PIL import Image
 from torch import nn as nn
 from torchvision import transforms as transforms
 from utils.robustbench import benchmark
-from utils.utils import plot_acc_vs_beta
+from utils.utils import get_pretrained_model, get_file_name, fix_seed, result_exists, set_logger, plot_metric_vs_beta
 from utils.curvature_tuning import replace_module, CT
-from train import test_epoch
 from loguru import logger
-from utils.data import get_data_loaders
-from PIL import Image
+import copy
+import argparse
+
+device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 
 
-def replace_and_test_acc(model, beta_vals, dataset, coeff=0.5, model_name=""):
+def test_robustness(dataset, threat, beta_vals, coeff, seed, model_name, base_batch_size=1000):
     """
-    Replace ReLU with BetaReLU and test the model on the specified dataset.
+    Test the model's robustness with different beta values of CT on the same dataset.
     """
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-    _, test_loader = get_data_loaders(dataset)
-
-    logger.info(f'Running post-replace accuracy test for {model_name} on {dataset}...')
-    criterion = nn.CrossEntropyLoss()
-
-    acc_list = []
-    beta_list = []
-
-    # Test the original model
-    logger.debug('Using ReLU...')
-    _, base_acc = test_epoch(-1, model, test_loader, criterion, device)
-    best_acc = base_acc
-    best_beta = 1
-
-    # Test the model with different beta values
-    for i, beta in enumerate(beta_vals):
-        logger.debug(f'Using BetaReLU with beta={beta:.2f}')
-        new_model = replace_module(copy.deepcopy(model), nn.ReLU, CT, beta=beta, coeff=coeff)
-
-        # Register the hook for the top-k layer as copy.deepcopy does not copy hooks
-        if hasattr(model, 'feature_extractor'):
-            new_model.feature_extractor.register_hook(new_model.feature_extractor.topk)
-
-        _, test_acc = test_epoch(-1, new_model, test_loader, criterion, device)
-        if test_acc > best_acc:
-            best_acc = test_acc
-            best_beta = beta
-        acc_list.append(test_acc)
-        beta_list.append(beta)
-    acc_list.append(base_acc)
-    beta_list.append(1)
-    logger.info(f'Best accuracy for {dataset}: {best_acc:.2f} with beta={best_beta:.2f}, compared to ReLU accuracy: {base_acc:.2f}')
-
-    plot_acc_vs_beta(acc_list, beta_list, base_acc, dataset, model_name)
+    model = get_pretrained_model(dataset, model_name)
+    if dataset == 'imagenet':
+        batch_size = base_batch_size // 4
+    else:
+        batch_size = base_batch_size
+    replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=coeff, seed=seed, batch_size=batch_size, model_name=model_name)
 
 
-def replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=0.5, seed=42, batch_size=1000, model_name=""):
+def replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=0.5, seed=42, batch_size=1000, model_name="resnet18"):
     """
-    Replace ReLU with BetaReLU and test the model's robustness on RobustBench.
+    Replace ReLU with CT and test the model's robustness on RobustBench.
     """
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.eval()
 
     threat_to_eps = {
@@ -137,7 +110,7 @@ def replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=0.5, se
 
     # Test the model with different beta values
     for i, beta in enumerate(beta_vals):
-        logger.debug(f'Using BetaReLU with beta={beta:.2f}')
+        logger.debug(f'Using CT with beta={beta:.2f}')
         state_path = Path(state_path_format_str.format(beta=beta))
         new_model = replace_module(copy.deepcopy(model), nn.ReLU, CT, beta=beta, coeff=coeff)
         _, test_acc = benchmark(
@@ -158,4 +131,44 @@ def replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=0.5, se
 
     logger.info(f'Best robust accuracy for {dataset} with {threat} attack: {best_acc:.2f} with beta={best_beta:.2f}, compared to ReLU accuracy: {base_acc:.2f}')
 
-    plot_acc_vs_beta(acc_list, beta_list, base_acc, dataset, model_name, f'{threat}_{n_examples}')
+    plot_metric_vs_beta(acc_list, beta_list, base_acc, dataset, model_name, f'{threat}_{n_examples}', metric='Robust Accuracy')
+
+def get_args():
+    parser = argparse.ArgumentParser(description='Transfer learning with linear probe')
+    parser.add_argument(
+        '--model',
+        type=str,
+        default='resnet18',
+        help='Model to test'
+    )
+    parser.add_argument('--coeff', type=float, default=0.5, help='Coefficient for CT')
+    parser.add_argument('--seed', type=int, default=42, help='Random seed')
+    parser.add_argument('--datasets', type=str, nargs='+',
+                        default=['cifar10', 'cifar100', 'imagenet'], help='List of datasets')
+    parser.add_argument('--threats', type=str, nargs='+',
+                        default=['Linf', 'L2', 'corruptions'], help='List of threats')
+    parser.add_argument('--base_batch_size', type=int, default=1000, help='Base batch size for robustness tests')
+    return parser.parse_args()
+
+
+def main():
+    args = get_args()
+
+    f_name = get_file_name(__file__)
+    log_file_path = set_logger(
+        name=f'{f_name}_coeff{args.coeff}_{args.model}_seed{args.seed}')
+    logger.info(f'Log file: {log_file_path}')
+
+    betas = np.arange(0.5, 1 - 1e-6, 0.01)
+
+    for ds in args.datasets:
+        fix_seed(args.seed)  # Fix the seed each time
+
+        for threat in args.threats:
+            if result_exists(f'{ds}', robustness_test=threat):
+                logger.info(f'Skipping robustness test for {ds} with {threat} as result already exists.')
+            else:
+                test_robustness(ds, threat, betas, args.coeff, args.seed, args.model, args.base_batch_size)
+
+if __name__ == '__main__':
+    main()

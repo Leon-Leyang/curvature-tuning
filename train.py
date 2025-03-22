@@ -1,3 +1,6 @@
+"""
+This file is for training models on the specified dataset.
+"""
 import os
 import glob
 import re
@@ -113,7 +116,7 @@ def train(dataset, model_name, batch_size=None, learning_rate=None, num_epochs=N
     logger.info(f'Training {model_name} on {dataset}...')
     wandb.init(project='smooth-spline', entity='leyang_hu')
 
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 
     # Hyperparameters
     batch_size = 128 if batch_size is None else batch_size

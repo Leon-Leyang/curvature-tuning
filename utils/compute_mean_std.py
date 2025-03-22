@@ -1,3 +1,6 @@
+"""
+This file is for computing the mean and standard deviation of image datasets.
+"""
 import datasets
 import torch
 from torchvision import transforms

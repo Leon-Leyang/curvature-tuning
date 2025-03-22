@@ -1,3 +1,6 @@
+"""
+This file shows the smoothing of the classification model's decision boundary by applying CT with different beta values.
+"""
 import os
 import copy
 import torch
@@ -58,9 +61,6 @@ def plot_decision_boundary(ax, points, target, xx, yy, pred, title, mesh_dim, co
     - title: Title for the subplot.
     - mesh_dim: Dimension of the meshgrid.
     """
-    # Map target values to colors and labels
-    fontsize = 10
-
     colors = ["olive" if t == 0 else "palevioletred" for t in target.cpu().numpy()]
     labels = ["Class 1" if t == 0 else "Class 2" for t in target.cpu().numpy()]
 
@@ -97,7 +97,7 @@ def plot_classification_bond(
     width: int, depth: int, training_steps=2000, beta_vals=[0.9], noise=0.4, n_turns=3, label_flip=0.05, c=0.5, colors=None
 ) -> None:
     """
-    Plot the decision boundary of the model for BetaSwish, BetaSoftplus, and BetaAgg.
+    Plot the decision boundary of the model for CT.
 
     Args:
     - width (int): Width of the MLP.
@@ -106,18 +106,20 @@ def plot_classification_bond(
     - beta_vals (list of float): List of beta values to test.
     - noise (float): Noise level for spiral data.
     - n_turns (int): Number of spiral turns.
-    - c (float): Coefficient for BetaAgg.
+    - c (float): Coefficient for CT.
     """
+    device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
+
     N = 1024  # Number of training points
 
     # Data generation
     logger.debug("Generating data...")
     X, y = generate_spiral_data(n_points=N, noise=noise, n_turns=n_turns, label_flip=label_flip)
-    points = torch.from_numpy(X).float().cuda()
-    target = torch.from_numpy(y).long().cuda()
+    points = torch.from_numpy(X).float().to(device)
+    target = torch.from_numpy(y).long().to(device)
 
     # Model and optimizer definition
-    relu_model = MLP(2, 1, depth, width, nn.ReLU()).cuda()
+    relu_model = MLP(2, 1, depth, width, nn.ReLU()).to(device)
     optim = torch.optim.AdamW(relu_model.parameters(), 0.001)
     scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=training_steps // 4, gamma=0.1)
 
@@ -143,13 +145,11 @@ def plot_classification_bond(
             np.linspace(-domain_bound, domain_bound, mesh_dim),
             np.linspace(-domain_bound, domain_bound, mesh_dim),
         )
-        grid = torch.from_numpy(np.stack([xx.flatten(), yy.flatten()], 1)).float().cuda()
+        grid = torch.from_numpy(np.stack([xx.flatten(), yy.flatten()], 1)).float().to(device)
 
     # Row configurations for each activation type
     activation_configs = [
-        # ("BetaSwish", 1),
-        # ("BetaSoftplus", 0),
-        ("BetaAgg", c),
+        ("CT", c),
     ]
 
     # Create subplots

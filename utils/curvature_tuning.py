@@ -1,3 +1,7 @@
+"""
+This file implements the Curvature Tuning (CT) activation function.
+A utility function is also provided to replace all instances of a module in a model with a new module (e.g., ReLU with CT).
+"""
 import torch
 from torch import nn
 

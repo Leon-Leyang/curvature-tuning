@@ -12,7 +12,6 @@ pyyaml
 matplotlib==3.9.2
 wandb==0.18.1
 scikit-learn==1.5.2
---find-links https://download.pytorch.org/whl/torch_stable.html
-torch==2.4.1+cu118
-torchvision==0.19.1+cu118
 loguru==0.7.2
+datasets==3.4.1
+opencv-python==4.11.0.86

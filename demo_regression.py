@@ -1,3 +1,6 @@
+"""
+This file shows the smoothing of the regression model by applying CT with different beta values.
+"""
 import os
 import copy
 import torch
@@ -24,7 +27,7 @@ def plot_classification(
     width: int, depth: int, training_steps=2000, beta_vals=[0.9], noise=0.1, c=0.5, colors=None
 ) -> None:
     """
-    Plot the decision boundary of the model for BetaSwish, BetaSoftplus, and BetaAgg.
+    Plot the decision boundary of the model for CT.
 
     Args:
     - width (int): Width of the MLP.
@@ -34,18 +37,18 @@ def plot_classification(
     - noise (float): Noise level for spiral data.
     - n_turns (int): Number of spiral turns.
     """
-    fontsize = 10
+    device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 
     N = 30  # Number of training points
 
     # Data generation
     logger.debug("Generating data...")
     X, y = generate_curve_data(n_points=N, noise=noise)
-    points = torch.from_numpy(X).float().cuda().unsqueeze(-1)
-    target = torch.from_numpy(y).float().cuda().unsqueeze(-1)
+    points = torch.from_numpy(X).float().to(device).unsqueeze(-1)
+    target = torch.from_numpy(y).float().to(device).unsqueeze(-1)
 
     # Model and optimizer definition
-    relu_model = MLP(1, 1, depth, width, nn.ReLU()).cuda()
+    relu_model = MLP(1, 1, depth, width, nn.ReLU()).to(device)
     optim = torch.optim.AdamW(relu_model.parameters(), 0.001)
     scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=training_steps // 4, gamma=0.1)
 
@@ -64,7 +67,7 @@ def plot_classification(
 
     # Create intervals of x for regression plotting
     x_range = np.linspace(X.min(), X.max(), 1000).reshape(-1, 1)
-    x_range_torch = torch.from_numpy(x_range).float().cuda()
+    x_range_torch = torch.from_numpy(x_range).float().to(device)
 
     # True curve
     true_curve = 1.2 * np.sin(2 * x_range)

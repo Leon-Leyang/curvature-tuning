@@ -1,3 +1,6 @@
+"""
+This file is for evaluating the per attribute metrics from the CelebA experiment logs.
+"""
 import re
 import numpy as np
 
