@@ -154,7 +154,7 @@ def eval_mse(model, testloader, device='cuda'):
 
 
 def get_args():
-    parser = argparse.ArgumentParser(description='Transfer learning with linear probe')
+    parser = argparse.ArgumentParser(description='Generalization experiments on regression datasets')
     parser.add_argument(
         '--model',
         type=str,

@@ -229,7 +229,7 @@ def eval_multi_label(model, testloader, device='cuda'):
 
 
 def get_args():
-    parser = argparse.ArgumentParser(description='Transfer learning with linear probe')
+    parser = argparse.ArgumentParser(description='Generalization experiments on multi-label image classification datasets')
     parser.add_argument(
         '--model',
         type=str,

@@ -433,7 +433,7 @@ def cal_acc(data_list, pred_folder, classes, names):
 
 
 def get_parser():
-    parser = argparse.ArgumentParser(description='PyTorch Semantic Segmentation')
+    parser = argparse.ArgumentParser(description='Generalization experiments on semantic segmentation datasets')
     parser.add_argument('--config', type=str, default='voc2012_pspnet50.yaml', help='config file')
     parser.add_argument('--beta', type=float, default=1.0, help='Beta value for CT')
     parser.add_argument('opts', help='see voc2012_pspnet50.yaml for all options', default=None, nargs=argparse.REMAINDER)

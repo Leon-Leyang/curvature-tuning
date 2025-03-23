@@ -134,7 +134,7 @@ def replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=0.5, se
     plot_metric_vs_beta(acc_list, beta_list, base_acc, dataset, model_name, f'{threat}_{n_examples}', metric='Robust Accuracy')
 
 def get_args():
-    parser = argparse.ArgumentParser(description='Transfer learning with linear probe')
+    parser = argparse.ArgumentParser(description='Robustness experiments on RobustBench')
     parser.add_argument(
         '--model',
         type=str,

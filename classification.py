@@ -169,7 +169,7 @@ def test_acc(dataset, beta_vals, coeff, model_name):
 
 
 def get_args():
-    parser = argparse.ArgumentParser(description='Transfer learning with linear probe')
+    parser = argparse.ArgumentParser(description='Generalization experiments on image classification datasets')
     parser.add_argument(
         '--model',
         type=str,

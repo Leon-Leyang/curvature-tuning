@@ -204,7 +204,7 @@ def train(dataset, model_name, batch_size=None, learning_rate=None, num_epochs=N
 
 
 def get_args():
-    parser = argparse.ArgumentParser(description='Train a model on the specified dataset.')
+    parser = argparse.ArgumentParser(description='Training a model on the specified dataset.')
     parser.add_argument('--dataset', type=str, default='cifar10', help='Dataset to train on, e.g., cifar10/cifar100/imagenette')
     parser.add_argument('--model', type=str, default='resnet18', help='Model to train, e.g., resnet18')
     parser.add_argument('--batch_size', type=int, default=None, help='Batch size')
