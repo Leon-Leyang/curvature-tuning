@@ -127,79 +127,81 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
             ])
 
     if dataset_to_use == 'cifar10':
-        trainset = torchvision.datasets.CIFAR10(
+        train_set = torchvision.datasets.CIFAR10(
             root='./data', train=True, download=True, transform=transform_train)
-        testset = torchvision.datasets.CIFAR10(
+        test_set = torchvision.datasets.CIFAR10(
             root='./data', train=False, download=True, transform=transform_test)
     elif dataset_to_use == 'cifar100':
-        trainset = torchvision.datasets.CIFAR100(
+        train_set = torchvision.datasets.CIFAR100(
             root='./data', train=True, download=True, transform=transform_train)
-        testset = torchvision.datasets.CIFAR100(
+        test_set = torchvision.datasets.CIFAR100(
             root='./data', train=False, download=True, transform=transform_test)
     elif dataset_to_use == 'mnist':
-        trainset = torchvision.datasets.MNIST(
+        train_set = torchvision.datasets.MNIST(
             root='./data', train=True, download=True, transform=transform_train)
-        testset = torchvision.datasets.MNIST(
+        test_set = torchvision.datasets.MNIST(
             root='./data', train=False, download=True, transform=transform_test)
     elif dataset_to_use == 'imagenet':
-        trainset = None
-        testset = torchvision.datasets.ImageNet(
+        train_set = None
+        test_set = torchvision.datasets.ImageNet(
             root='./data/imagenet', split='val', transform=transform_test)
     elif dataset_to_use in ['arabic_characters', 'fashion_mnist', 'arabic_digits', 'cub200', 'food101', 'dsprites', 'imagenette']:
         hf_trainset = datasets.load_dataset(f"./utils/aidatasets/images/{dataset_to_use}.py", split="train", trust_remote_code=True)
         hf_testset = datasets.load_dataset(f"./utils/aidatasets/images/{dataset_to_use}.py", split="test", trust_remote_code=True)
-        trainset = HuggingFaceDataset(hf_trainset, transform=transform_train)
-        testset = HuggingFaceDataset(hf_testset, transform=transform_test)
+        train_set = HuggingFaceDataset(hf_trainset, transform=transform_train)
+        test_set = HuggingFaceDataset(hf_testset, transform=transform_test)
     elif dataset_to_use in ['imagenet100']:
         hf_trainset = datasets.load_dataset(f"./utils/aidatasets/images/{dataset_to_use}.py", split="train", trust_remote_code=True, cache_dir="/users/hleyang/scratch/cache")
         hf_testset = datasets.load_dataset(f"./utils/aidatasets/images/{dataset_to_use}.py", split="validation", trust_remote_code=True, cache_dir="/users/hleyang/scratch/cache")
-        trainset = HuggingFaceDataset(hf_trainset, transform=transform_train)
-        testset = HuggingFaceDataset(hf_testset, transform=transform_test)
+        train_set = HuggingFaceDataset(hf_trainset, transform=transform_train)
+        test_set = HuggingFaceDataset(hf_testset, transform=transform_test)
     elif dataset_to_use in ['fgvc_aircraft', 'flowers102', 'beans', 'dtd', 'celeb_a']:
         hf_train_dataset = datasets.load_dataset(f"./utils/aidatasets/images/{dataset_to_use}.py", split="train", trust_remote_code=True)
         hf_val_dataset = datasets.load_dataset(f"./utils/aidatasets/images/{dataset_to_use}.py", split="validation", trust_remote_code=True)
         hf_testset = datasets.load_dataset(f"./utils/aidatasets/images/{dataset_to_use}.py", split="test", trust_remote_code=True)
         hf_trainset = datasets.concatenate_datasets([hf_train_dataset, hf_val_dataset])
-        trainset = HuggingFaceDataset(hf_trainset, transform=transform_train)
-        testset = HuggingFaceDataset(hf_testset, transform=transform_test)
+        train_set = HuggingFaceDataset(hf_trainset, transform=transform_train)
+        test_set = HuggingFaceDataset(hf_testset, transform=transform_test)
     elif dataset_to_use in ['med_mnist/pathmnist', 'med_mnist/octmnist', 'med_mnist/dermamnist']:
         name = dataset_to_use.split('/')[-1]
         hf_train_dataset = datasets.load_dataset("./utils/aidatasets/images/med_mnist.py", name=name, split="train", trust_remote_code=True)
         hf_val_dataset = datasets.load_dataset("./utils/aidatasets/images/med_mnist.py", name=name, split="validation", trust_remote_code=True)
         hf_testset = datasets.load_dataset("./utils/aidatasets/images/med_mnist.py", name=name, split="test", trust_remote_code=True)
         hf_trainset = datasets.concatenate_datasets([hf_train_dataset, hf_val_dataset])
-        trainset = HuggingFaceDataset(hf_trainset, transform=transform_train)
-        testset = HuggingFaceDataset(hf_testset, transform=transform_test)
+        train_set = HuggingFaceDataset(hf_trainset, transform=transform_train)
+        test_set = HuggingFaceDataset(hf_testset, transform=transform_test)
     else:
         raise NotImplementedError(f'The specified dataset {dataset_to_use} is not implemented.')
 
     # Split the dataset if val_size is specified
     if val_size is not None:
-        if val_size >= len(trainset):
+        if val_size == -1:
+            val_size = test_size if test_size is not None else len(test_set)
+        if val_size >= len(train_set):
             raise ValueError("Validation size should be smaller than the original training set size.")
 
-        remaining_size = len(trainset) - val_size
-        trainset, valset = random_split(trainset, [remaining_size, val_size])
+        remaining_size = len(train_set) - val_size
+        train_set, val_set = random_split(train_set, [remaining_size, val_size])
 
-        valloader = DataLoader(valset, batch_size=test_batch_size, shuffle=False, num_workers=num_workers)
+        val_loader = DataLoader(val_set, batch_size=test_batch_size, shuffle=False, num_workers=num_workers)
     else:
-        valloader = None
+        val_loader = None
 
     if train_size is not None:
-        if train_size > len(trainset):
+        if train_size > len(train_set):
             raise ValueError("Requested train_size is larger than the remaining training set.")
-        indices = np.random.choice(len(trainset), train_size, replace=False).tolist()
-        trainset = Subset(trainset, indices)
+        indices = np.random.choice(len(train_set), train_size, replace=False).tolist()
+        train_set = Subset(train_set, indices)
 
     if test_size is not None:
-        indices = np.random.choice(len(testset), test_size, replace=False).tolist()
-        testset = Subset(testset, indices)
+        indices = np.random.choice(len(test_set), test_size, replace=False).tolist()
+        test_set = Subset(test_set, indices)
 
     if dataset_to_use != 'imagenet':
-        trainloader = torch.utils.data.DataLoader(
-            trainset, batch_size=train_batch_size, shuffle=True, num_workers=num_workers)
+        train_loader = torch.utils.data.DataLoader(
+            train_set, batch_size=train_batch_size, shuffle=True, num_workers=num_workers)
     else:
-        trainloader = None
-    testloader = DataLoader(testset, batch_size=test_batch_size, shuffle=False, num_workers=num_workers)
+        train_loader = None
+    test_loader = DataLoader(test_set, batch_size=test_batch_size, shuffle=False, num_workers=num_workers)
 
-    return trainloader, testloader, valloader
+    return train_loader, test_loader, val_loader
