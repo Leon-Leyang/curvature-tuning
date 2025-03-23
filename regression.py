@@ -25,9 +25,9 @@ def transfer_linear_probe(model, pretrained_ds, transfer_ds, topk=1):
 
     # Get the data loaders
     if transfer_ds == 'dsprites':
-        train_loader, _ = get_data_loaders(f'{pretrained_ds}_to_{transfer_ds}', train_size=50000, test_size=10000)
+        train_loader, _, _ = get_data_loaders(f'{pretrained_ds}_to_{transfer_ds}', train_size=50000, test_size=10000)
     else:
-        train_loader, _ = get_data_loaders(f'{pretrained_ds}_to_{transfer_ds}')
+        train_loader, _, _ = get_data_loaders(f'{pretrained_ds}_to_{transfer_ds}')
 
     # Remove the last layer of the model
     model = model.to(device)
@@ -88,9 +88,9 @@ def replace_then_lp_test_mse(beta_vals, pretrained_ds, transfer_ds, coeff=0.5, t
     model_name = model.__class__.__name__
 
     if transfer_ds == 'dsprites':
-        _, test_loader = get_data_loaders(dataset, train_size=50000, test_size=10000)
+        _, test_loader, _ = get_data_loaders(dataset, train_size=50000, test_size=10000)
     else:
-        _, test_loader = get_data_loaders(dataset)
+        _, test_loader, _ = get_data_loaders(dataset)
 
     logger.info(f'Running replace then linear probe mse test for {model_name} on {dataset}...')
 

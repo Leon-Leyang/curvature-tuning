@@ -25,7 +25,7 @@ def transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1, topk=1):
     logger.debug('Transfer learning with linear probe...')
 
     # Get the data loaders
-    train_loader, _ = get_data_loaders(f'{pretrained_ds}_to_{transfer_ds}')
+    train_loader, _, _ = get_data_loaders(f'{pretrained_ds}_to_{transfer_ds}')
 
     # Remove the last layer of the model
     model = model.to(device)
@@ -79,7 +79,7 @@ def replace_and_test_acc(model, beta_vals, dataset, coeff=0.5, model_name=""):
     """
     Replace ReLU with CT and test the model on the specified dataset.
     """
-    _, test_loader = get_data_loaders(dataset)
+    _, test_loader, _ = get_data_loaders(dataset)
 
     logger.info(f'Running post-replace accuracy test for {model_name} on {dataset}...')
     criterion = nn.CrossEntropyLoss()
@@ -125,7 +125,7 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
 
     model_name = model.__class__.__name__
 
-    _, test_loader = get_data_loaders(dataset)
+    _, test_loader, _ = get_data_loaders(dataset)
 
     logger.info(f'Running replace then linear probe accuracy test for {model_name} on {dataset}...')
     criterion = nn.CrossEntropyLoss()

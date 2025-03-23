@@ -125,7 +125,7 @@ def train(dataset, model_name, batch_size=None, learning_rate=None, num_epochs=N
 
     # Get the data loaders
     transform_train, transform_test = None, None
-    train_loader, test_loader = get_data_loaders(dataset, train_batch_size=batch_size, transform_train=transform_train, transform_test=transform_test)
+    train_loader, test_loader, _ = get_data_loaders(dataset, train_batch_size=batch_size, transform_train=transform_train, transform_test=transform_test)
 
     # Initialize the model
     num_classes = 100 if 'cifar100' in dataset or 'imagenet100' in dataset else 10

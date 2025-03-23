@@ -4,7 +4,7 @@ This file contains utility functions for loading datasets.
 import numpy as np
 import torch
 import torchvision
-from torch.utils.data import Subset
+from torch.utils.data import Subset, DataLoader, random_split
 from torchvision import transforms as transforms
 import datasets
 
@@ -66,7 +66,7 @@ def replicate_if_needed(x):
     return x  # Return unchanged if already has more than 1 channel
 
 
-def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_size=None, test_size=None, num_workers=6, transform_train=None, transform_test=None):
+def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_size=None, test_size=None, val_size=None, num_workers=6, transform_train=None, transform_test=None):
     """
     Get the data loaders for the dataset.
     """
@@ -173,18 +173,33 @@ def get_data_loaders(dataset, train_batch_size=500, test_batch_size=500, train_s
     else:
         raise NotImplementedError(f'The specified dataset {dataset_to_use} is not implemented.')
 
+    # Split the dataset if val_size is specified
+    if val_size is not None:
+        if val_size >= len(trainset):
+            raise ValueError("Validation size should be smaller than the original training set size.")
+
+        remaining_size = len(trainset) - val_size
+        trainset, valset = random_split(trainset, [remaining_size, val_size])
+
+        valloader = DataLoader(valset, batch_size=test_batch_size, shuffle=False, num_workers=num_workers)
+    else:
+        valloader = None
+
     if train_size is not None:
+        if train_size > len(trainset):
+            raise ValueError("Requested train_size is larger than the remaining training set.")
         indices = np.random.choice(len(trainset), train_size, replace=False).tolist()
         trainset = Subset(trainset, indices)
+
     if test_size is not None:
         indices = np.random.choice(len(testset), test_size, replace=False).tolist()
         testset = Subset(testset, indices)
 
     if dataset_to_use != 'imagenet':
-       trainloader = torch.utils.data.DataLoader(
-           trainset, batch_size=train_batch_size, shuffle=True, num_workers=num_workers)
+        trainloader = torch.utils.data.DataLoader(
+            trainset, batch_size=train_batch_size, shuffle=True, num_workers=num_workers)
     else:
         trainloader = None
-    testloader = torch.utils.data.DataLoader(
-        testset, batch_size=test_batch_size, shuffle=False, num_workers=num_workers)
-    return trainloader, testloader
+    testloader = DataLoader(testset, batch_size=test_batch_size, shuffle=False, num_workers=num_workers)
+
+    return trainloader, testloader, valloader
