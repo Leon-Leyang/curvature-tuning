@@ -32,7 +32,7 @@ do
   do
       for seed in 42 43 44
       do
-          python -u classification.py --model $model --seed $seed --pretrained_ds ${pretrained_datasets[@]} --transfer_ds ${transfer_datasets[@]} --train_percentage $train_percentage
+          python -u classification_test_unseen.py --model $model --seed $seed --pretrained_ds ${pretrained_datasets[@]} --transfer_ds ${transfer_datasets[@]} --train_percentage $train_percentage
       done
   done
 done
