@@ -33,6 +33,30 @@ NORMALIZATION_VALUES = {
     'imagenet100': ([0.481, 0.453, 0.399], [0.277, 0.271, 0.281]),
 }
 
+# Dataset name to number of classes mapping
+DATASET_TO_NUM_CLASSES = {
+    'cifar10': 10,
+    'cifar100': 100,
+    'mnist': 10,
+    'imagenet': 1000,
+    'arabic_characters': 28,
+    'arabic_digits': 10,
+    'beans': 3,
+    'cub200': 200,
+    'dtd': 47,
+    'food101': 101,
+    'fgvc_aircraft': 100,
+    'flowers102': 102,
+    'fashion_mnist': 10,
+    'med_mnist/pathmnist': 9,
+    'med_mnist/octmnist': 4,
+    'med_mnist/dermamnist': 7,
+    'celeb_a': 40,
+    'dsprites': 1,
+    'imagenette': 10,
+    'imagenet100': 100,
+}
+
 
 class HuggingFaceDataset(torch.utils.data.Dataset):
     """

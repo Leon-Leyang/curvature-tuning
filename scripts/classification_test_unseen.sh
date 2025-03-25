@@ -21,7 +21,7 @@ conda activate spline
 
 export PYTHONPATH=./
 
-models=(resnet18 resnet50 swin_t)
+models=(resnet18 resnet50 resnet152)
 pretrained_datasets=(imagenet)
 transfer_datasets=(arabic_characters beans fgvc_aircraft)
 train_percentages=(0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0)

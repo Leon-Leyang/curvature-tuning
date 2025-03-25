@@ -59,8 +59,7 @@ def get_pretrained_model(pretrained_ds='cifar100', model_name='resnet18'):
         'resnet34': torchvision.models.resnet34,
         'resnet50': torchvision.models.resnet50,
         'resnet101': torchvision.models.resnet101,
-        'resnet152': torchvision.models.resnet152,
-        'vgg19': torchvision.models.vgg19
+        'resnet152': torchvision.models.resnet152
     }
 
     ckpt_folder = './ckpts'

@@ -4,7 +4,7 @@ This script evaluates the generalization improvement achieved by CT across vario
 import torch
 import numpy as np
 from torch import nn as nn
-from utils.data import get_data_loaders
+from utils.data import get_data_loaders, DATASET_TO_NUM_CLASSES
 from sklearn.linear_model import LogisticRegression
 from utils.transfer_learning import FeatureExtractor, WrappedModel, extract_features
 from utils.utils import get_pretrained_model, get_file_name, fix_seed, result_exists, set_logger, plot_metric_vs_beta
@@ -32,7 +32,7 @@ def transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1, topk=1):
     feature_extractor = FeatureExtractor(model, topk)
     train_features, train_labels = extract_features(feature_extractor, train_loader)
 
-    num_classes = 100 if transfer_ds == 'cifar100' else 1000 if transfer_ds == 'imagenet' else 10
+    num_classes = DATASET_TO_NUM_CLASSES[transfer_ds]
 
     # Linear probe
     if topk == 1:
