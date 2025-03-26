@@ -108,14 +108,18 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
             best_val_acc = val_acc
             best_val_beta = beta
 
-    logger.debug(f'Testing best CT with beta={best_val_beta:.2f}')
-    new_model = replace_module(copy.deepcopy(model), nn.ReLU, CT, beta=best_val_beta, coeff=coeff)
-    transfer_model = transfer_linear_probe(new_model, pretrained_ds, transfer_ds, reg, topk, train_loader)
-    _, best_test_acc = test_epoch(-1, transfer_model, test_loader, criterion, device)
-
     logger.debug(f'Testing ReLU')
     transfer_model = transfer_linear_probe(copy.deepcopy(model), pretrained_ds, transfer_ds, reg, topk, train_loader)
     _, relu_test_acc = test_epoch(-1, transfer_model, test_loader, criterion, device)
+
+    if best_val_beta != 1:
+        logger.debug(f'Testing best CT with beta={best_val_beta:.2f}')
+        new_model = replace_module(copy.deepcopy(model), nn.ReLU, CT, beta=best_val_beta, coeff=coeff)
+        transfer_model = transfer_linear_probe(new_model, pretrained_ds, transfer_ds, reg, topk, train_loader)
+        _, best_test_acc = test_epoch(-1, transfer_model, test_loader, criterion, device)
+    else:
+        logger.debug(f'Skipping testing best CT as beta=1')
+        best_test_acc = relu_test_acc
 
     logger.info(
         f'Best accuracy for {dataset}: {best_test_acc:.2f} with beta={best_val_beta:.2f}, compared to ReLU accuracy: {relu_test_acc:.2f}')
