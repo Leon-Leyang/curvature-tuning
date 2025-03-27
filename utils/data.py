@@ -71,7 +71,7 @@ class HuggingFaceDataset(torch.utils.data.Dataset):
         return len(self.dataset)
 
     def __getitem__(self, idx):
-        sample = self.dataset[idx]
+        sample = self.dataset[int(idx)]
         image = sample['image']
         label = sample['label']
 
