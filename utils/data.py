@@ -104,7 +104,7 @@ def get_labels_from_subset(ds):
         labels = [ds[i][1] for i in range(len(ds))]
     return np.array(labels)
 
-def stratified_train_val_split(full_dataset, val_size, random_state=42):
+def stratified_train_val_split(full_dataset, val_size):
     """
     Perform a single stratified split on 'full_dataset' of size len(full_dataset).
     'val_size' should be the absolute number of samples for the val subset.
@@ -120,15 +120,15 @@ def stratified_train_val_split(full_dataset, val_size, random_state=42):
     # We want 'val_size' samples for val.
     # In StratifiedShuffleSplit, we typically specify fractions or absolute counts
     # by setting 'test_size'. So we do:
-    sss = StratifiedShuffleSplit(n_splits=1, test_size=val_size, random_state=random_state)
+    sss = StratifiedShuffleSplit(n_splits=1, test_size=val_size)
     train_idx, val_idx = next(sss.split(X, y))
 
     train_subset = Subset(full_dataset, train_idx)
-    val_subset   = Subset(full_dataset, val_idx)
+    val_subset = Subset(full_dataset, val_idx)
     return train_subset, val_subset
 
 
-def stratified_subset(dataset, n_samples, random_state=42):
+def stratified_subset(dataset, n_samples):
     """
     Return a new Subset of 'dataset' with 'n_samples' selected via stratified sampling,
     ensuring that every class is present (assuming n_samples >= number_of_classes).
@@ -145,7 +145,7 @@ def stratified_subset(dataset, n_samples, random_state=42):
         )
 
     X = np.arange(len(dataset))
-    sss = StratifiedShuffleSplit(n_splits=1, train_size=n_samples, random_state=random_state)
+    sss = StratifiedShuffleSplit(n_splits=1, train_size=n_samples)
     sub_idx, _ = next(sss.split(X, labels))
     return Subset(dataset, sub_idx)
 
@@ -329,10 +329,12 @@ def get_data_loaders(dataset,
     else:
         raise NotImplementedError(f"The specified dataset '{dataset_to_use}' is not implemented.")
 
-    # -----------------------
-    # Create Val Split (If Any)
-    # -----------------------
+    # Split the dataset if val_size is specified
     if (train_full is not None) and (val_size is not None):
+        if val_size == -1:
+            val_size = test_size if test_size is not None else len(test_set)
+        if val_size >= len(train_full):
+            raise ValueError("Validation size should be smaller than the original training set size.")
         # We do a stratified split so that the new "train" portion
         # still has every label after splitting off val_size samples.
         train_full, val_subset = stratified_train_val_split(train_full, val_size)
@@ -342,16 +344,11 @@ def get_data_loaders(dataset,
     else:
         val_loader = None
 
-    # -----------------------
-    # Subsample the Train Set (If train_size is specified)
-    # -----------------------
-    # We do a second stratified selection to ensure coverage again.
+    # Subsample the Train Set
     if (train_full is not None) and (train_size is not None):
         train_full = stratified_subset(train_full, train_size)
 
-    # -----------------------
     # Subsample the Test Set (If test_size is specified)
-    # -----------------------
     if (test_size is not None) and (test_size < len(test_set)):
         # For test, you *could* do a stratified_subset if you wish to preserve coverage,
         # but here we'll just do a random subset as the original code did.
@@ -360,10 +357,7 @@ def get_data_loaders(dataset,
     elif (test_size is not None) and (test_size >= len(test_set)):
         raise ValueError("test_size >= size of test set.")
 
-    # -----------------------
     # Create DataLoaders
-    # -----------------------
-    # If it's ImageNet and we never loaded a train set, skip train_loader
     if (dataset_to_use == 'imagenet') or (train_full is None):
         train_loader = None
     else:
