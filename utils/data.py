@@ -98,7 +98,7 @@ def get_labels_from_subset(ds):
     """
     if isinstance(ds, Subset):
         # ds.indices are the indices into ds.dataset
-        labels = [ds.dataset[idx][1] for idx in ds.indices]
+        labels = [ds.dataset[int(idx)][1] for idx in ds.indices]
     else:
         # Plain dataset
         labels = [ds[i][1] for i in range(len(ds))]
@@ -224,9 +224,7 @@ def get_data_loaders(dataset,
                 transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
             ])
 
-    # -----------
     # Load Dataset
-    # -----------
     if dataset_to_use == 'cifar10':
         train_full = torchvision.datasets.CIFAR10(
             root='./data', train=True, download=True, transform=transform_train)
