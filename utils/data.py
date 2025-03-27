@@ -344,7 +344,8 @@ def get_data_loaders(dataset,
 
     # Subsample the Train Set
     if (train_full is not None) and (train_size is not None):
-        train_full = stratified_subset(train_full, train_size)
+        if train_size != len(train_full):
+            train_full = stratified_subset(train_full, train_size)
 
     # Subsample the Test Set (If test_size is specified)
     if (test_size is not None) and (test_size < len(test_set)):
