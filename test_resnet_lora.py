@@ -20,7 +20,7 @@ def transfer_with_lora(model, pretrained_ds, transfer_ds, rank, alpha, epochs):
     wandb.init(project='curvature-tuning', entity='leyang_hu')
 
     dataset = f'{pretrained_ds}_to_{transfer_ds}'
-    train_loader, test_loader, _ = get_data_loaders(dataset)
+    train_loader, test_loader, _ = get_data_loaders(dataset, train_batch_size=1000)
 
     # Get the LoRA version of the model
     model = get_pretrained_model(pretrained_ds, model)
@@ -37,7 +37,7 @@ def transfer_with_lora(model, pretrained_ds, transfer_ds, rank, alpha, epochs):
 
     # Loss function and optimizer
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-4, weight_decay=0.01)
+    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-3)
 
     for epoch in range(1, epochs + 1):
         train_epoch(epoch, model, train_loader, optimizer, criterion, device, warmup_scheduler=None)
@@ -57,7 +57,7 @@ def get_args():
     )
     parser.add_argument('--rank', type=int, default=1, help='Rank for LoRA')
     parser.add_argument('--alpha', type=float, default=1.0, help='Alpha for LoRA')
-    parser.add_argument('--epochs', type=int, default=10, help='Number of epochs to train')
+    parser.add_argument('--epochs', type=int, default=30, help='Number of epochs to train')
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
     parser.add_argument('--pretrained_ds', type=str, nargs='+',
                         default=['imagenet'], help='List of pretrained datasets')
