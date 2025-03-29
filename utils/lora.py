@@ -156,3 +156,5 @@ def get_lora_cnn(module: nn.Module, r: int = 4, alpha: float = 1.0):
         else:
             # Recursively traverse children
             get_lora_cnn(child, r=r, alpha=alpha)
+
+    return module
