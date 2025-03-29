@@ -4,6 +4,7 @@ This file is for utility functions used across the project.
 import os
 import sys
 import torchvision
+from torch import nn as nn
 from torchvision.models import swin_t, swin_s
 from matplotlib import pyplot as plt
 from matplotlib.ticker import ScalarFormatter
@@ -180,3 +181,7 @@ def plot_metric_vs_beta(acc_list, beta_list, base_acc, dataset, model_name, robu
     else:
         output_path = f"./figures/{get_file_name(get_log_file_path())}_{dataset}_{model_name}.png"
     plt.savefig(output_path)
+
+
+def count_trainable_parameters(model: nn.Module) -> int:
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
