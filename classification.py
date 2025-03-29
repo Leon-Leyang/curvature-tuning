@@ -45,7 +45,7 @@ def transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1, topk=1):
         fc.weight.requires_grad = False
         fc.bias.requires_grad = False
     else:
-        wandb.init(project='smooth-spline', entity='leyang_hu')
+        wandb.init(project='curvature-tuning', entity='leyang_hu')
         in_features = train_features.shape[1]
         fc = nn.Linear(in_features, num_classes).to(device)
         fc.train()

@@ -114,7 +114,7 @@ def train(dataset, model_name, batch_size=None, learning_rate=None, num_epochs=N
     }
 
     logger.info(f'Training {model_name} on {dataset}...')
-    wandb.init(project='smooth-spline', entity='leyang_hu')
+    wandb.init(project='curvature-tuning', entity='leyang_hu')
 
     device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 

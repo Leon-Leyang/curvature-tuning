@@ -17,7 +17,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.ba
 
 def transfer_with_lora(model, pretrained_ds, transfer_ds, rank, alpha, epochs):
     logger.info(f"Transfer learning from {pretrained_ds} to {transfer_ds}")
-    wandb.init(project='smooth-spline', entity='leyang_hu')
+    wandb.init(project='curvature-tuning', entity='leyang_hu')
 
     dataset = f'{pretrained_ds}_to_{transfer_ds}'
     train_loader, test_loader, _ = get_data_loaders(dataset)
