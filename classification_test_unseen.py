@@ -18,7 +18,7 @@ import wandb
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 
 
-def transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1, topk=1, train_loader=None):
+def transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1, topk=1, train_loader=None, use_gd=False):
     """
     Transfer learning.
     """
@@ -36,7 +36,7 @@ def transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1, topk=1, trai
     num_classes = DATASET_TO_NUM_CLASSES[transfer_ds]
 
     # Linear probe
-    if topk == 1:
+    if not use_gd:
         logistic_regressor = LogisticRegression(max_iter=10000, C=reg)
         logistic_regressor.fit(train_features, train_labels)
 
@@ -46,7 +46,7 @@ def transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1, topk=1, trai
         fc.weight.requires_grad = False
         fc.bias.requires_grad = False
     else:
-        wandb.init(project='smooth-spline', entity='leyang_hu')
+        wandb.init(project='curvature-tuning', entity='leyang_hu')
         in_features = train_features.shape[1]
         fc = nn.Linear(in_features, num_classes).to(device)
         fc.train()
@@ -76,7 +76,7 @@ def transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1, topk=1, trai
     return model
 
 
-def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff=0.5, topk=1, model_name='resnet18', train_size=10000):
+def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff=0.5, topk=1, model_name='resnet18', train_size=10000, use_gd=False):
     """
     Replace ReLU with CT and then do transfer learning using a linear probe and test the model's accuracy.
     """
@@ -93,7 +93,7 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
 
     # Test the original model
     logger.debug('Using ReLU...')
-    transfer_model = transfer_linear_probe(copy.deepcopy(model), pretrained_ds, transfer_ds, reg, topk, train_loader)
+    transfer_model = transfer_linear_probe(copy.deepcopy(model), pretrained_ds, transfer_ds, reg, topk, train_loader, use_gd)
     _, relu_val_acc = test_epoch(-1, transfer_model, val_loader, criterion, device)
     best_val_acc = relu_val_acc
     best_val_beta = 1
@@ -102,20 +102,20 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
     for i, beta in enumerate(beta_vals):
         logger.debug(f'Using CT with beta={beta:.2f}')
         new_model = replace_module(copy.deepcopy(model), nn.ReLU, CT, beta=beta, coeff=coeff)
-        transfer_model = transfer_linear_probe(new_model, pretrained_ds, transfer_ds, reg, topk, train_loader)
+        transfer_model = transfer_linear_probe(new_model, pretrained_ds, transfer_ds, reg, topk, train_loader, use_gd)
         _, val_acc = test_epoch(-1, transfer_model, val_loader, criterion, device)
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             best_val_beta = beta
 
     logger.debug(f'Testing ReLU')
-    transfer_model = transfer_linear_probe(copy.deepcopy(model), pretrained_ds, transfer_ds, reg, topk, train_loader)
+    transfer_model = transfer_linear_probe(copy.deepcopy(model), pretrained_ds, transfer_ds, reg, topk, train_loader, use_gd)
     _, relu_test_acc = test_epoch(-1, transfer_model, test_loader, criterion, device)
 
     if best_val_beta != 1:
         logger.debug(f'Testing best CT with beta={best_val_beta:.2f}')
         new_model = replace_module(copy.deepcopy(model), nn.ReLU, CT, beta=best_val_beta, coeff=coeff)
-        transfer_model = transfer_linear_probe(new_model, pretrained_ds, transfer_ds, reg, topk, train_loader)
+        transfer_model = transfer_linear_probe(new_model, pretrained_ds, transfer_ds, reg, topk, train_loader, use_gd)
         _, best_test_acc = test_epoch(-1, transfer_model, test_loader, criterion, device)
     else:
         logger.debug(f'Skipping testing best CT as beta=1')
@@ -135,6 +135,7 @@ def get_args():
         help='Model to test'
     )
     parser.add_argument('--coeff', type=float, default=0.5, help='Coefficient for CT')
+    parser.add_argument('--use_gd', action='store_true', help='Use gradient descent to train the linear layer')
     parser.add_argument('--reg', type=float, default=1, help='Regularization strength for Logistic Regression')
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
     parser.add_argument('--topk', type=int, default=1, help='Number of top-k feature layers to use')
@@ -149,9 +150,17 @@ def get_args():
 def main():
     args = get_args()
 
+    use_gd = args.use_gd
+    if args.topk > 1:
+        use_gd = True
+
     f_name = get_file_name(__file__)
-    log_file_path = set_logger(
-        name=f'{f_name}_train_percentage{args.train_percentage}_coeff{args.coeff}_topk{args.topk}_reg{args.reg}_{args.model}_seed{args.seed}')
+    if not use_gd:
+        log_file_path = set_logger(
+            name=f'{f_name}_train_percentage{args.train_percentage}_coeff{args.coeff}_topk{args.topk}_reg{args.reg}_{args.model}_seed{args.seed}')
+    else:
+        log_file_path = set_logger(
+            name=f'{f_name}_train_percentage{args.train_percentage}_coeff{args.coeff}_topk{args.topk}_gd_{args.model}_seed{args.seed}')
     logger.info(f'Log file: {log_file_path}')
 
     betas = np.arange(0.5, 1 - 1e-6, 0.01)
@@ -177,7 +186,7 @@ def main():
                 train_size = int(args.train_percentage * full_train_size)
                 logger.debug(f'Full train size: {full_train_size}, Train size: {train_size}')
 
-                replace_then_lp_test_acc(betas, pretrained_ds, transfer_ds, args.reg, args.coeff, args.topk, args.model, train_size)
+                replace_then_lp_test_acc(betas, pretrained_ds, transfer_ds, args.reg, args.coeff, args.topk, args.model, train_size, use_gd)
 
 
 if __name__ == '__main__':
