@@ -16,12 +16,12 @@ import os
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 
 
-def transfer_with_lora(model_name, pretrained_ds, transfer_ds, rank, alpha, epochs):
+def transfer_with_lora(model_name, pretrained_ds, transfer_ds, rank, alpha, epochs, train_size):
     logger.info(f"Transfer learning from {pretrained_ds} to {transfer_ds}")
     wandb.init(project='curvature-tuning', entity='leyang_hu')
 
     dataset = f'{pretrained_ds}_to_{transfer_ds}'
-    train_loader, test_loader, val_loader = get_data_loaders(dataset, val_size=-1, train_batch_size=1000)
+    train_loader, test_loader, val_loader = get_data_loaders(dataset, train_size=train_size, val_size=-1, train_batch_size=1000)
 
     # Get the LoRA version of the model
     model = get_pretrained_model(pretrained_ds, model_name)
@@ -72,6 +72,7 @@ def get_args():
                         default=['imagenet'], help='List of pretrained datasets')
     parser.add_argument('--transfer_ds', type=str, nargs='+',
                         default=['arabic_characters', 'arabic_digits', 'beans', 'cub200', 'dtd', 'fashion_mnist', 'fgvc_aircraft', 'flowers102', 'food101'], help='List of transfer datasets')
+    parser.add_argument('--train_percentage', type=float, default=1.0, help='Percentage of training data to use (after splitting validation)')
     return parser.parse_args()
 
 
@@ -93,7 +94,14 @@ def main():
     for pretrained_ds in pretrained_ds:
         for transfer_ds in transfer_ds:
             fix_seed(args.seed)
-            transfer_with_lora(args.model, pretrained_ds, transfer_ds, rank, alpha, epochs)
+
+            # Hack to get the full training set size after splitting validation
+            train_loader, test_loader, val_loader = get_data_loaders(f'{pretrained_ds}_to_{transfer_ds}', val_size=-1)
+            full_train_size = len(train_loader.dataset)
+            train_size = int(args.train_percentage * full_train_size)
+            logger.debug(f'Full train size: {full_train_size}, Train size: {train_size}')
+
+            transfer_with_lora(args.model, pretrained_ds, transfer_ds, rank, alpha, epochs, train_size)
 
 
 if __name__ == "__main__":
