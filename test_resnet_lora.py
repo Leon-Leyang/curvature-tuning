@@ -11,6 +11,7 @@ import torch.nn as nn
 from train import train_epoch, test_epoch
 import torch.optim as optim
 import torch
+import os
 
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 
@@ -20,7 +21,7 @@ def transfer_with_lora(model, pretrained_ds, transfer_ds, rank, alpha, epochs):
     wandb.init(project='curvature-tuning', entity='leyang_hu')
 
     dataset = f'{pretrained_ds}_to_{transfer_ds}'
-    train_loader, test_loader, _ = get_data_loaders(dataset, train_batch_size=1000)
+    train_loader, test_loader, val_loader = get_data_loaders(dataset, val_size=-1, train_batch_size=1000)
 
     # Get the LoRA version of the model
     model = get_pretrained_model(pretrained_ds, model)
@@ -39,9 +40,17 @@ def transfer_with_lora(model, pretrained_ds, transfer_ds, rank, alpha, epochs):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-3)
 
+    best_loss = float('inf')
+    os.makedirs('./ckpts', exist_ok=True)
     for epoch in range(1, epochs + 1):
         train_epoch(epoch, model, train_loader, optimizer, criterion, device, warmup_scheduler=None)
+        val_loss, _ = test_epoch(epoch, model, val_loader, criterion, device)
+        if val_loss < best_loss:
+            logger.debug(f'New best validation loss: {val_loss} at epoch {epoch}')
+            best_loss = val_loss
+            torch.save(model.state_dict(), f'./ckpts/{model}_{transfer_ds}_best.pth')
 
+    model.load_state_dict(torch.load(f'./ckpts/{model}_{transfer_ds}_best.pth'))
     test_epoch(-1, model, test_loader, criterion, device)
 
     wandb.finish()
