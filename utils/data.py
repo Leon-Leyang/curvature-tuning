@@ -120,7 +120,7 @@ def stratified_train_val_split(full_dataset, val_size):
     # We want 'val_size' samples for val.
     # In StratifiedShuffleSplit, we typically specify fractions or absolute counts
     # by setting 'test_size'. So we do:
-    sss = StratifiedShuffleSplit(n_splits=1, test_size=val_size)
+    sss = StratifiedShuffleSplit(n_splits=1, test_size=val_size, random_state=42)
     train_idx, val_idx = next(sss.split(X, y))
 
     train_subset = Subset(full_dataset, train_idx)
@@ -145,7 +145,7 @@ def stratified_subset(dataset, n_samples):
         )
 
     X = np.arange(len(dataset))
-    sss = StratifiedShuffleSplit(n_splits=1, train_size=n_samples)
+    sss = StratifiedShuffleSplit(n_splits=1, train_size=n_samples, random_state=42)
     sub_idx, _ = next(sss.split(X, labels))
     return Subset(dataset, sub_idx)
 
