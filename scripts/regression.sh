@@ -4,7 +4,7 @@
 #SBATCH -N 1
 #SBATCH -p gpu --gres=gpu:1
 #SBATCH --mem=48G
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=6
 #SBATCH -J regression
 #SBATCH -o regression.log
 #SBATCH -e regression.log
