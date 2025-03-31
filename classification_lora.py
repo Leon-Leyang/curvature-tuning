@@ -50,7 +50,7 @@ def transfer_with_lora(model_name, pretrained_ds, transfer_ds, rank, alpha, epoc
             best_loss = val_loss
             torch.save(model.state_dict(), f'./ckpts/{model_name}_rank{rank}_alpha{alpha}_{transfer_ds}_train_size_{train_size}_best.pth')
 
-    model.load_state_dict(torch.load(f'./ckpts/{model_name}_rank{rank}_alpha{alpha}_{transfer_ds}_train_size{train_size}_best.pth'))
+    model.load_state_dict(torch.load(f'./ckpts/{model_name}_rank{rank}_alpha{alpha}_{transfer_ds}_train_size_{train_size}_best.pth'))
     test_epoch(-1, model, test_loader, criterion, device)
 
     wandb.finish()
