@@ -76,7 +76,7 @@ def transfer_linear_probe(model, pretrained_ds, transfer_ds, reg=1, topk=1, trai
     return model
 
 
-def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff=0.5, topk=1, model_name='resnet18', train_size=10000, use_gd=False):
+def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff=0.5, topk=1, model_name='resnet18', train_size=10000, val_size=10000, use_gd=False):
     """
     Replace ReLU with CT and then do transfer learning using a linear probe and test the model's accuracy.
     """
@@ -86,7 +86,7 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
 
     model_name = model.__class__.__name__
 
-    train_loader, test_loader, val_loader = get_data_loaders(dataset, train_size=train_size, val_size=-1)
+    train_loader, test_loader, val_loader = get_data_loaders(dataset, train_size=train_size, val_size=val_size)
 
     logger.info(f'Running replace then linear probe accuracy test for {model_name} on {dataset}...')
     criterion = nn.CrossEntropyLoss()
@@ -144,6 +144,7 @@ def get_args():
     parser.add_argument('--transfer_ds', type=str, nargs='+',
                         default=['arabic_characters', 'beans', 'fgvc_aircraft'], help='List of transfer datasets')
     parser.add_argument('--train_percentage', type=float, default=1.0, help='Percentage of training data to use (after splitting validation)')
+    parser.add_argument('--val_percentage', type=float, default=1.0, help='Percentage of validation data to use (if percentage equals 1.0 then the size of validation set equals to the size of test set )')
     return parser.parse_args()
 
 
@@ -184,9 +185,12 @@ def main():
                 train_loader, test_loader, val_loader = get_data_loaders(f'{pretrained_ds}_to_{transfer_ds}', val_size=-1)
                 full_train_size = len(train_loader.dataset)
                 train_size = int(args.train_percentage * full_train_size)
+                full_val_size = len(val_loader.dataset)
+                val_size = int(args.val_percentage * full_val_size)
                 logger.debug(f'Full train size: {full_train_size}, Train size: {train_size}')
+                logger.debug(f'Full val size: {full_val_size}, Val size: {val_size}')
 
-                replace_then_lp_test_acc(betas, pretrained_ds, transfer_ds, args.reg, args.coeff, args.topk, args.model, train_size, use_gd)
+                replace_then_lp_test_acc(betas, pretrained_ds, transfer_ds, args.reg, args.coeff, args.topk, args.model, train_size, val_size, use_gd)
 
 
 if __name__ == '__main__':
