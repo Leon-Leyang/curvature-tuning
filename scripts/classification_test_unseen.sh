@@ -23,16 +23,12 @@ export PYTHONPATH=./
 
 models=(resnet18 resnet50 resnet152)
 pretrained_datasets=(imagenet)
-transfer_datasets=(arabic_characters beans fgvc_aircraft)
-train_percentages=(0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0)
+transfer_datasets=(arabic_characters arabic_digits beans cub200 dtd fashion_mnist fgvc_aircraft food101 med_mnist/dermamnist med_mnist/octmnist med_mnist/pathmnist)
 
 for model in "${models[@]}"
 do
-  for train_percentage in "${train_percentages[@]}"
-  do
-      for seed in 42 43 44
-      do
-          python -u classification_test_unseen.py --model $model --seed $seed --pretrained_ds ${pretrained_datasets[@]} --transfer_ds ${transfer_datasets[@]} --train_percentage $train_percentage
-      done
-  done
+    for seed in 42 43 44
+    do
+        python -u classification_test_unseen.py --model $model --seed $seed --pretrained_ds ${pretrained_datasets[@]} --transfer_ds ${transfer_datasets[@]}
+    done
 done
