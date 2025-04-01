@@ -123,8 +123,6 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
 
     model = get_pretrained_model(pretrained_ds, model_name)
 
-    model_name = model.__class__.__name__
-
     _, test_loader, _ = get_data_loaders(dataset)
 
     logger.info(f'Running replace then linear probe accuracy test for {model_name} on {dataset}...')
@@ -157,7 +155,7 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
     logger.info(
         f'Best accuracy for {dataset}: {best_acc:.2f} with beta={best_beta:.2f}, compared to ReLU accuracy: {base_acc:.2f}')
 
-    plot_metric_vs_beta(acc_list, beta_list, base_acc, f'{dataset}', model_name, metric='Accuracy')
+    plot_metric_vs_beta(acc_list, beta_list, base_acc, f'{dataset}', metric='Test Accuracy')
 
 
 def test_acc(dataset, beta_vals, coeff, model_name):

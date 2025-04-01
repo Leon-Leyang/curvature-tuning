@@ -84,12 +84,13 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
 
     model = get_pretrained_model(pretrained_ds, model_name)
 
-    model_name = model.__class__.__name__
-
     train_loader, test_loader, val_loader = get_data_loaders(dataset, train_size=train_size, val_size=val_size)
 
     logger.info(f'Running replace then linear probe accuracy test for {model_name} on {dataset}...')
     criterion = nn.CrossEntropyLoss()
+
+    val_acc_list = []
+    beta_list = []
 
     # Test the original model
     logger.debug('Using ReLU...')
@@ -107,6 +108,12 @@ def replace_then_lp_test_acc(beta_vals, pretrained_ds, transfer_ds, reg=1, coeff
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             best_val_beta = beta
+        val_acc_list.append(val_acc)
+        beta_list.append(beta)
+    val_acc_list.append(relu_val_acc)
+    beta_list.append(1)
+
+    plot_metric_vs_beta(val_acc_list, beta_list, relu_val_acc, dataset, metric='Val Accuracy')
 
     logger.debug(f'Testing ReLU')
     transfer_model = transfer_linear_probe(copy.deepcopy(model), pretrained_ds, transfer_ds, reg, topk, train_loader, use_gd)

@@ -153,17 +153,17 @@ def get_log_file_path():
     return file_paths[0]
 
 
-def plot_metric_vs_beta(acc_list, beta_list, base_acc, dataset, model_name, robust_config=None, metric='Accuracy'):
+def plot_metric_vs_beta(acc_list, beta_list, base_acc, dataset, robust_config=None, metric='Accuracy'):
     if '/' in dataset:      # Hack to handle med_mnist/pathmnist
         dataset = dataset.split('/')[0]
 
     # Plot the test accuracy vs beta values
     plt.figure(figsize=(12, 8))
     plt.plot(beta_list, acc_list)
-    plt.axhline(y=base_acc, color='r', linestyle='--', label='ReLU Test Accuracy')
-    plt.xlabel('Beta')
-    plt.ylabel(f'Test {metric}')
-    plt.title(f'Test {metric} vs Beta Values')
+    plt.axhline(y=base_acc, color='r', linestyle='--', label=f'ReLU {metric}')
+    plt.xlabel(r"$\beta$")
+    plt.ylabel(f'{metric}')
+    plt.title(f'{metric} vs Beta Values')
 
     # Ensure that both x-axis and y-axis show raw numbers without offset or scientific notation
     ax = plt.gca()
@@ -177,9 +177,9 @@ def plot_metric_vs_beta(acc_list, beta_list, base_acc, dataset, model_name, robu
     plt.legend()
     os.makedirs('./figures', exist_ok=True)
     if robust_config:
-        output_path = f"./figures/{get_file_name(get_log_file_path())}_{dataset}_{model_name}_{robust_config}.png"
+        output_path = f"./figures/{get_file_name(get_log_file_path())}_{dataset}_{robust_config}.png"
     else:
-        output_path = f"./figures/{get_file_name(get_log_file_path())}_{dataset}_{model_name}.png"
+        output_path = f"./figures/{get_file_name(get_log_file_path())}_{dataset}.png"
     plt.savefig(output_path)
 
 
