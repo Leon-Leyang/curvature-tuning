@@ -158,10 +158,10 @@ def main():
     f_name = get_file_name(__file__)
     if not use_gd:
         log_file_path = set_logger(
-            name=f'{f_name}_train_percentage{args.train_percentage}_coeff{args.coeff}_topk{args.topk}_reg{args.reg}_{args.model}_seed{args.seed}')
+            name=f'{f_name}_train{args.train_percentage}_val{args.val_percentage}_coeff{args.coeff}_topk{args.topk}_reg{args.reg}_{args.model}_seed{args.seed}')
     else:
         log_file_path = set_logger(
-            name=f'{f_name}_train_percentage{args.train_percentage}_coeff{args.coeff}_topk{args.topk}_gd_{args.model}_seed{args.seed}')
+            name=f'{f_name}_train{args.train_percentage}_val{args.val_percentage}_coeff{args.coeff}_topk{args.topk}_gd_{args.model}_seed{args.seed}')
     logger.info(f'Log file: {log_file_path}')
 
     betas = np.arange(0.5, 1 - 1e-6, 0.01)
