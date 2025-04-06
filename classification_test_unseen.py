@@ -181,7 +181,7 @@ def main():
             fix_seed(args.seed)  # Fix the seed each time
 
             if pretrained_ds == transfer_ds:  # Test on the same dataset
-                raise ValueError('Currently not supporting testing on the same dataset since the test set shall not be splited for validation.')
+                raise ValueError('Currently not supporting testing on the same dataset since the test set shall not be split for validation.')
 
             else:  # Test on different datasets
                 if result_exists(f'{pretrained_ds}_to_{transfer_ds}'):

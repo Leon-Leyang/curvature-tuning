@@ -81,7 +81,7 @@ def main():
 
     f_name = get_file_name(__file__)
     log_file_path = set_logger(
-        name=f'{f_name}_train_percentage{args.train_percentage}_rank{args.rank}_alpha{args.alpha}_epoch{args.epochs}_{args.model}_seed{args.seed}')
+        name=f'{f_name}_train{args.train_percentage}_rank{args.rank}_alpha{args.alpha}_epoch{args.epochs}_{args.model}_seed{args.seed}')
     logger.info(f'Log file: {log_file_path}')
 
     pretrained_ds = args.pretrained_ds
