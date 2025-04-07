@@ -38,16 +38,19 @@ def train_epoch(epoch, model, trainloader, optimizer, criterion, device, warmup_
         correct += predicted.eq(targets).sum().item()
 
         if batch_idx % 100 == 0:
-            train_loss = running_loss / (batch_idx + 1)
-            train_accuracy = 100. * correct / total
-            logger.debug(f'Epoch {epoch}, Step {batch_idx}, Loss: {train_loss:.6f}, Accuracy: {train_accuracy:.2f}%')
+            partial_loss = running_loss / (batch_idx + 1)
+            partial_accuracy = 100. * correct / total
+            logger.debug(f'Epoch {epoch}, Step {batch_idx}, Loss: {partial_loss:.6f}, Accuracy: {partial_accuracy:.2f}%')
 
-        if epoch <= 1:
-            if warmup_scheduler is not None:
-                warmup_scheduler.step()
+        if epoch <= 1 and warmup_scheduler is not None:
+            warmup_scheduler.step()
 
-    # Log the training loss and accuracy to wandb
+    # Compute final epoch loss and accuracy
+    train_loss = running_loss / len(trainloader)
+    train_accuracy = 100. * correct / total
+
     wandb.log({'epoch': epoch, 'train_loss': train_loss, 'train_accuracy': train_accuracy, 'lr': optimizer.param_groups[0]['lr']})
+    return train_loss
 
 
 def test_epoch(epoch, model, testloader, criterion, device):
