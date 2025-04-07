@@ -152,7 +152,7 @@ def main():
         name=f'{f_name}_rank{args.rank}_alpha{args.alpha}_epoch{args.epochs}_{args.model}_seed{args.seed}')
     logger.info(f'Log file: {log_file_path}')
 
-    betas = np.arange(0.8, 1 - 1e-6, 0.01)
+    betas = np.arange(0.7, 1 - 1e-6, 0.01)
 
     pretrained_datasets = args.pretrained_ds
     transfer_datasets = args.transfer_ds
