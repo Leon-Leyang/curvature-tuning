@@ -47,16 +47,21 @@ def replace_and_transfer_with_lora(beta, model_name, pretrained_ds, transfer_ds,
 
     best_loss = float('inf')
     os.makedirs('./ckpts', exist_ok=True)
+    nan = False
     for epoch in range(1, epochs + 1):
         train_loss = train_epoch(epoch, model, train_loader, optimizer, criterion, device, warmup_scheduler=None)
         if torch.isnan(torch.tensor(train_loss)):
             logger.error(f"NaN detected in training loss at epoch {epoch}. Skipping further training.")
+            nan = True
             break
         val_loss, _ = test_epoch(epoch, model, val_loader, criterion, device)
         if val_loss < best_loss:
             logger.debug(f'New best validation loss: {val_loss} at epoch {epoch}')
             best_loss = val_loss
             torch.save(model.state_dict(), f'./ckpts/{model_name}_beta{beta:.2f}_rank{rank}_alpha{alpha}_{pretrained_ds}_to_{transfer_ds}_best.pth')
+
+    if nan:
+        return None
 
     model.load_state_dict(torch.load(f'./ckpts/{model_name}_beta{beta:.2f}_rank{rank}_alpha{alpha}_{pretrained_ds}_to_{transfer_ds}_best.pth'))
 
@@ -89,6 +94,9 @@ def replace_then_lora_test_acc(beta_vals, pretrained_ds, transfer_ds, model_name
     for i, beta in enumerate(beta_vals):
         logger.debug(f'Using CT with beta={beta:.2f}')
         transfer_model = replace_and_transfer_with_lora(beta, model_name, pretrained_ds, transfer_ds, rank, alpha, epochs, train_loader, val_loader)
+        if transfer_model is None:
+            logger.error(f"Skipping beta={beta:.2f} due to NaN in training loss.")
+            continue
         _, val_acc = test_epoch(-1, transfer_model, val_loader, criterion, device)
         if val_acc > best_val_acc:
             best_val_acc = val_acc
