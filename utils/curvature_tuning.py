@@ -4,6 +4,7 @@ A utility function is also provided to replace all instances of a module in a mo
 """
 import torch
 from torch import nn
+import torch.nn.functional as F
 
 
 class CT(nn.Module):
@@ -16,16 +17,8 @@ class CT(nn.Module):
         self.threshold = threshold
 
     def forward(self, x):
-        beta = self.beta
-        normal_ver = (
-            self.coeff * torch.sigmoid(beta * x / (1 - beta)) * x +
-            (1 - self.coeff) * torch.log(1 + torch.exp(x / (1 - beta))) * (1 - beta)
-        )
-        overflow_ver = (
-            self.coeff * torch.sigmoid(beta * x / (1 - beta)) * x +
-            (1 - self.coeff) * x
-        )
-        return torch.where(x / (1 - beta) <= self.threshold, normal_ver, overflow_ver)
+        return (self.coeff * torch.sigmoid(self.beta * x / (1 - self.beta)) * x +
+                (1 - self.coeff) * F.softplus(x / (1 - self.beta), threshold=self.threshold) * (1 - self.beta))
 
 
 class ReplacementMapping:
