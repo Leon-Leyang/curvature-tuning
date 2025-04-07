@@ -53,9 +53,9 @@ def replace_and_transfer_with_lora(beta, model_name, pretrained_ds, transfer_ds,
         if val_loss < best_loss:
             logger.debug(f'New best validation loss: {val_loss} at epoch {epoch}')
             best_loss = val_loss
-            torch.save(model.state_dict(), f'./ckpts/{model_name}_beta{beta}_rank{rank}_alpha{alpha}_{pretrained_ds}_to_{transfer_ds}_best.pth')
+            torch.save(model.state_dict(), f'./ckpts/{model_name}_beta{beta:.2f}_rank{rank}_alpha{alpha}_{pretrained_ds}_to_{transfer_ds}_best.pth')
 
-    model.load_state_dict(torch.load(f'./ckpts/{model_name}_beta{beta}_rank{rank}_alpha{alpha}_{pretrained_ds}_to_{transfer_ds}_best.pth'))
+    model.load_state_dict(torch.load(f'./ckpts/{model_name}_beta{beta:.2f}_rank{rank}_alpha{alpha}_{pretrained_ds}_to_{transfer_ds}_best.pth'))
 
     wandb.finish()
 
@@ -67,7 +67,7 @@ def replace_then_lora_test_acc(beta_vals, pretrained_ds, transfer_ds, model_name
     Replace ReLU with CT and then do transfer learning using a linear probe and test the model's accuracy.
     """
     dataset = f'{pretrained_ds}_to_{transfer_ds}'
-    train_loader, test_loader, val_loader = get_data_loaders(dataset, val_size=-1, train_batch_size=1000)
+    train_loader, test_loader, val_loader = get_data_loaders(dataset, val_size=-1, train_batch_size=500)
 
     logger.info(f'Running replace then lora accuracy test for {model_name} on {dataset}...')
     criterion = nn.CrossEntropyLoss()
@@ -141,7 +141,7 @@ def main():
         name=f'{f_name}_rank{args.rank}_alpha{args.alpha}_epoch{args.epochs}_{args.model}_seed{args.seed}')
     logger.info(f'Log file: {log_file_path}')
 
-    betas = np.arange(0.5, 1 - 1e-6, 0.01)
+    betas = np.arange(0.8, 1 - 1e-6, 0.01)
 
     pretrained_datasets = args.pretrained_ds
     transfer_datasets = args.transfer_ds
