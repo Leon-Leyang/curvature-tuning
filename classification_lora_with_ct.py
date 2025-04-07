@@ -75,7 +75,7 @@ def replace_then_lora_test_acc(beta_vals, pretrained_ds, transfer_ds, model_name
     Replace ReLU with CT and then do transfer learning using a linear probe and test the model's accuracy.
     """
     dataset = f'{pretrained_ds}_to_{transfer_ds}'
-    train_loader, test_loader, val_loader = get_data_loaders(dataset, val_size=-1, train_batch_size=500)
+    train_loader, test_loader, val_loader = get_data_loaders(dataset, val_size=-1, train_batch_size=300)
 
     logger.info(f'Running replace then lora accuracy test for {model_name} on {dataset}...')
     criterion = nn.CrossEntropyLoss()
