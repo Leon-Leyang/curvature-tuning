@@ -48,7 +48,10 @@ def replace_and_transfer_with_lora(beta, model_name, pretrained_ds, transfer_ds,
     best_loss = float('inf')
     os.makedirs('./ckpts', exist_ok=True)
     for epoch in range(1, epochs + 1):
-        train_epoch(epoch, model, train_loader, optimizer, criterion, device, warmup_scheduler=None)
+        train_loss = train_epoch(epoch, model, train_loader, optimizer, criterion, device, warmup_scheduler=None)
+        if torch.isnan(torch.tensor(train_loss)):
+            logger.error(f"NaN detected in training loss at epoch {epoch}. Skipping further training.")
+            break
         val_loss, _ = test_epoch(epoch, model, val_loader, criterion, device)
         if val_loss < best_loss:
             logger.debug(f'New best validation loss: {val_loss} at epoch {epoch}')
