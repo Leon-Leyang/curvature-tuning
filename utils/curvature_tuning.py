@@ -8,13 +8,34 @@ import torch.nn.functional as F
 
 
 class CT(nn.Module):
-    def __init__(self, beta=0., coeff=0.5, threshold=20, trainable=False):
-        assert 0 <= beta < 1
+    """
+    Curvature Tuning (CT) activation function.
+    This activation function is designed to be used in place of ReLU.
+    The computation is defined as:
+    CT(x) = coeff * sigmoid(beta * x / (1 - beta)) * x +
+             (1 - coeff) * softplus(x / (1 - beta)) * (1 - beta)
+    """
+    def __init__(self, num_input_dims, out_channels, beta=0.5, coeff=0.5, threshold=20):
         super().__init__()
-        self.beta = nn.Parameter(torch.tensor(beta))
-        self.beta.requires_grad_(trainable)
-        self.coeff = coeff
+
         self.threshold = threshold
+
+        # Decide channel dim based on input shape
+        if num_input_dims == 2 or num_input_dims == 3:  # (B, C) or (B, L, D)
+            channel_dim = -1
+        elif num_input_dims == 4: # (B, C, H, W)
+            channel_dim = 1
+        else:
+            raise NotImplementedError(f"Unsupported input dimension {num_input_dims}")
+
+        param_shape = [1] * num_input_dims
+        param_shape[channel_dim] = out_channels
+
+        # Init beta
+        self.beta = nn.Parameter(torch.full(param_shape, beta))
+
+        # Init coeff
+        self.coeff = nn.Parameter(torch.full(param_shape, coeff))
 
     def forward(self, x):
         return (self.coeff * torch.sigmoid(self.beta * x / (1 - self.beta)) * x +
@@ -54,3 +75,73 @@ def replace_module(model, old_module=nn.ReLU, new_module=CT, **kwargs):
         setattr(parent, module_names[-1], replacement)
 
     return model
+
+
+def replace_module_per_channel(model, input_shape, old_module=nn.ReLU, new_module=CT, **kwargs):
+    """
+    Safely replace all modules in a model with per-channel new modules.
+
+    For each old module, we record the number of input dimensions and the number of output channels
+    via a forward hook before replacing.
+
+    Args:
+        model (nn.Module): the model to modify in-place.
+        input_shape (tuple): dummy input shape for tracing.
+        old_module (type): module type to replace (default: nn.ReLU).
+        new_module (type): module class to instantiate (must accept num_input_dims and out_channels).
+        **kwargs: additional arguments for the new module constructor.
+    """
+    device = next(model.parameters(), torch.tensor([])).device
+    dummy_input = torch.randn(*input_shape).to(device)
+
+    module_metadata = {}  # name -> (num_input_dims, out_channels)
+    hooks = []
+
+    def make_hook(name):
+        def hook(module, input, output):
+            num_input_dims = input[0].dim()
+            if num_input_dims in (2, 3):    # (B, C) or (B, L, D)
+                out_channels = output.shape[-1]
+            elif num_input_dims == 4:       # (B, C, H, W)
+                out_channels = output.shape[1]
+            else:
+                raise NotImplementedError(f"Unsupported output shape {output.shape} in {name}")
+            module_metadata[name] = (num_input_dims, out_channels)
+
+        return hook
+
+    # Register hooks to all modules of the target type
+    for name, module in model.named_modules():
+        if isinstance(module, old_module):
+            hooks.append(module.register_forward_hook(make_hook(name)))
+
+    # Run dummy forward pass
+    model(dummy_input)
+
+    # Clean up hooks
+    for hook in hooks:
+        hook.remove()
+
+    # Replace modules
+    for name, module in model.named_modules():
+        if isinstance(module, old_module) and name in module_metadata:
+            num_input_dims, out_channels = module_metadata[name]
+            ct = new_module(num_input_dims=num_input_dims, out_channels=out_channels, **kwargs).to(device)
+
+            # Replace module in the model
+            names = name.split(".")
+            parent = model
+            for n in names[:-1]:
+                if n.isdigit():
+                    parent = parent[int(n)]  # for Sequential/ModuleList
+                else:
+                    parent = getattr(parent, n)
+
+            last_name = names[-1]
+            if last_name.isdigit():
+                parent[int(last_name)] = ct  # for Sequential/ModuleList
+            else:
+                setattr(parent, last_name, ct)
+
+    return model
+
