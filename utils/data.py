@@ -31,7 +31,6 @@ NORMALIZATION_VALUES = {
     'celeb_a': ([0.506, 0.426, 0.383], [0.311, 0.29, 0.29]),
     'dsprites': ([0.0, 0.0, 0.0], [0.001, 0.001, 0.001]),
     'imagenette': ([0.459, 0.455, 0.429], [0.286, 0.282, 0.305]),
-    'imagenet100': ([0.481, 0.453, 0.399], [0.277, 0.271, 0.281]),
 }
 
 # Dataset name to number of classes mapping
@@ -55,7 +54,6 @@ DATASET_TO_NUM_CLASSES = {
     'celeb_a': 40,
     'dsprites': 1,
     'imagenette': 10,
-    'imagenet100': 100,
 }
 
 
@@ -104,7 +102,7 @@ def get_labels_from_subset(ds):
         labels = [ds[i][1] for i in range(len(ds))]
     return np.array(labels)
 
-def stratified_train_val_split(full_dataset, val_size):
+def stratified_two_split(full_dataset, val_size):
     """
     Perform a single stratified split on 'full_dataset' of size len(full_dataset).
     'val_size' should be the absolute number of samples for the val subset.
@@ -128,15 +126,15 @@ def stratified_train_val_split(full_dataset, val_size):
     return train_subset, val_subset
 
 
-def stratified_subset(dataset, n_samples):
+def stratified_subset(full_dataset, n_samples):
     """
     Return a new Subset of 'dataset' with 'n_samples' selected via stratified sampling,
     ensuring that every class is present (assuming n_samples >= number_of_classes).
     """
-    if n_samples > len(dataset):
-        raise ValueError(f"Requested train_size={n_samples} exceeds dataset size {len(dataset)}.")
+    if n_samples > len(full_dataset):
+        raise ValueError(f"Requested train_size={n_samples} exceeds dataset size {len(full_dataset)}.")
 
-    labels = get_labels_from_subset(dataset)
+    labels = get_labels_from_subset(full_dataset)
     unique_labels = np.unique(labels)
     if n_samples < len(unique_labels):
         raise ValueError(
@@ -144,10 +142,10 @@ def stratified_subset(dataset, n_samples):
             f"cannot guarantee at least one sample per class."
         )
 
-    X = np.arange(len(dataset))
+    X = np.arange(len(full_dataset))
     sss = StratifiedShuffleSplit(n_splits=1, train_size=n_samples, random_state=42)
     sub_idx, _ = next(sss.split(X, labels))
-    return Subset(dataset, sub_idx)
+    return Subset(full_dataset, sub_idx)
 
 
 def get_data_loaders(dataset,
@@ -160,9 +158,7 @@ def get_data_loaders(dataset,
                      transform_train=None,
                      transform_test=None):
     """
-    Get train, test, and (optionally) val DataLoaders with guaranteed class coverage.
-    If val_size is specified, the training set is stratified so that no class is dropped.
-    If train_size is specified, the final training subset is again stratified to ensure coverage.
+    Get train, test, and val DataLoaders.
     """
     # Identify which transformations to apply based on dataset name
     if '_to_' in dataset:  # e.g., cifar10_to_cifar100
@@ -208,7 +204,7 @@ def get_data_loaders(dataset,
             ])
         elif transform_to_use in [
             'imagenet','fgvc_aircraft','places365_small','flowers102',
-            'beans','cub200','dtd','food101','celeb_a','imagenette','imagenet100']:
+            'beans','cub200','dtd','food101','celeb_a','imagenette']:
             transform_train = transforms.Compose([
                 transforms.Resize(256),
                 transforms.CenterCrop(224),
@@ -225,145 +221,136 @@ def get_data_loaders(dataset,
             ])
 
     # Load Dataset
+    train_set, val_set, test_set = None, None, None
     if dataset_to_use == 'cifar10':
-        train_full = torchvision.datasets.CIFAR10(
+        train_set = torchvision.datasets.CIFAR10(
             root='./data', train=True, download=True, transform=transform_train)
         test_set = torchvision.datasets.CIFAR10(
             root='./data', train=False, download=True, transform=transform_test)
 
     elif dataset_to_use == 'cifar100':
-        train_full = torchvision.datasets.CIFAR100(
+        train_set = torchvision.datasets.CIFAR100(
             root='./data', train=True, download=True, transform=transform_train)
         test_set = torchvision.datasets.CIFAR100(
             root='./data', train=False, download=True, transform=transform_test)
 
     elif dataset_to_use == 'mnist':
-        train_full = torchvision.datasets.MNIST(
+        train_set = torchvision.datasets.MNIST(
             root='./data', train=True, download=True, transform=transform_train)
         test_set = torchvision.datasets.MNIST(
             root='./data', train=False, download=True, transform=transform_test)
 
     elif dataset_to_use == 'imagenet':
-        # Typically, we only have a "val" set for ImageNet if we don't have user-provided train
-        train_full = None  # or load from somewhere else
+        # Only use the validation set for testing
         test_set = torchvision.datasets.ImageNet(
             root='./data/imagenet', split='val', transform=transform_test)
 
     elif dataset_to_use in ['arabic_characters','fashion_mnist','arabic_digits',
                             'cub200','food101','dsprites','imagenette']:
+        dataset_to_use = dataset_to_use.replace('_', '-')
         hf_trainset = datasets.load_dataset(
-            f"./utils/aidatasets/images/{dataset_to_use}.py",
+            f"randall-lab/{dataset_to_use}",
             split="train",
             trust_remote_code=True
         )
         hf_testset = datasets.load_dataset(
-            f"./utils/aidatasets/images/{dataset_to_use}.py",
+            f"randall-lab/{dataset_to_use}",
             split="test",
             trust_remote_code=True
         )
-        train_full = HuggingFaceDataset(hf_trainset, transform=transform_train)
-        test_set   = HuggingFaceDataset(hf_testset, transform=transform_test)
-
-    elif dataset_to_use in ['imagenet100']:
-        hf_trainset = datasets.load_dataset(
-            f"./utils/aidatasets/images/{dataset_to_use}.py",
-            split="train",
-            trust_remote_code=True,
-            cache_dir="/users/hleyang/scratch/cache"
-        )
-        hf_testset = datasets.load_dataset(
-            f"./utils/aidatasets/images/{dataset_to_use}.py",
-            split="validation",
-            trust_remote_code=True,
-            cache_dir="/users/hleyang/scratch/cache"
-        )
-        train_full = HuggingFaceDataset(hf_trainset, transform=transform_train)
-        test_set   = HuggingFaceDataset(hf_testset, transform=transform_test)
+        train_set = HuggingFaceDataset(hf_trainset, transform=transform_train)
+        test_set  = HuggingFaceDataset(hf_testset, transform=transform_test)
 
     elif dataset_to_use in ['fgvc_aircraft','flowers102','beans','dtd','celeb_a']:
-        hf_train_dataset = datasets.load_dataset(
-            f"./utils/aidatasets/images/{dataset_to_use}.py",
+        dataset_to_use = dataset_to_use.replace('_', '-')
+        hf_trainset = datasets.load_dataset(
+            f"randall-lab/{dataset_to_use}",
             split="train",
             trust_remote_code=True
         )
-        hf_val_dataset = datasets.load_dataset(
-            f"./utils/aidatasets/images/{dataset_to_use}.py",
+        hf_valset = datasets.load_dataset(
+            f"randall-lab/{dataset_to_use}",
             split="validation",
             trust_remote_code=True
         )
         hf_testset = datasets.load_dataset(
-            f"./utils/aidatasets/images/{dataset_to_use}.py",
+            f"randall-lab/{dataset_to_use}",
             split="test",
             trust_remote_code=True
         )
-        hf_trainset = datasets.concatenate_datasets([hf_train_dataset, hf_val_dataset])
-        train_full  = HuggingFaceDataset(hf_trainset, transform=transform_train)
+        train_set  = HuggingFaceDataset(hf_trainset, transform=transform_train)
+        val_set    = HuggingFaceDataset(hf_valset, transform=transform_test)
         test_set    = HuggingFaceDataset(hf_testset, transform=transform_test)
 
     elif dataset_to_use in ['med_mnist/pathmnist','med_mnist/octmnist','med_mnist/dermamnist']:
         name = dataset_to_use.split('/')[-1]
-        hf_train_dataset = datasets.load_dataset(
-            "./utils/aidatasets/images/med_mnist.py",
+        hf_trainset = datasets.load_dataset(
+            "randall-lab/medmnist",
             name=name,
             split="train",
             trust_remote_code=True
         )
-        hf_val_dataset = datasets.load_dataset(
-            "./utils/aidatasets/images/med_mnist.py",
+        hf_valset = datasets.load_dataset(
+            "randall-lab/medmnist",
             name=name,
             split="validation",
             trust_remote_code=True
         )
         hf_testset = datasets.load_dataset(
-            "./utils/aidatasets/images/med_mnist.py",
+            "randall-lab/medmnist",
             name=name,
             split="test",
             trust_remote_code=True
         )
-        hf_trainset = datasets.concatenate_datasets([hf_train_dataset, hf_val_dataset])
-        train_full  = HuggingFaceDataset(hf_trainset, transform=transform_train)
-        test_set    = HuggingFaceDataset(hf_testset, transform=transform_test)
+        train_set  = HuggingFaceDataset(hf_trainset, transform=transform_train)
+        val_set    = HuggingFaceDataset(hf_valset, transform=transform_test)
+        test_set   = HuggingFaceDataset(hf_testset, transform=transform_test)
 
     else:
         raise NotImplementedError(f"The specified dataset '{dataset_to_use}' is not implemented.")
 
-    # Split the dataset if val_size is specified
-    if (train_full is not None) and (val_size is not None):
-        if val_size == -1:
-            val_size = test_size if test_size is not None else len(test_set)
-        if val_size >= len(train_full):
-            raise ValueError("Validation size should be smaller than the original training set size.")
-        # We do a stratified split so that the new "train" portion
-        # still has every label after splitting off val_size samples.
-        train_full, val_subset = stratified_train_val_split(train_full, val_size)
-        val_loader = DataLoader(
-            val_subset, batch_size=test_batch_size, shuffle=False, num_workers=num_workers
-        )
-    else:
-        val_loader = None
+    if train_set is not None and val_set is None:
+        # If val_set is not specified, split the train_set into train and val
+        default_val_size = 0.2 * len(train_set)
+        train_set, val_set = stratified_two_split(train_set, default_val_size)
 
-    # Subsample the Train Set
-    if (train_full is not None) and (train_size is not None):
-        if train_size != len(train_full):
-            train_full = stratified_subset(train_full, train_size)
+    # Subsample the Train Set (If train_size is specified)
+    if train_set is not None:
+        if train_size is not None:
+            if train_size <= len(train_set):
+                train_set = stratified_subset(train_set, train_size)
+            else:
+                raise ValueError("train_size > size of train set.")
+
+        # Subsample the Val Set (If val_size is specified)
+        if val_size is not None:
+            if val_size <= len(val_set):
+                val_set = stratified_subset(val_set, val_size)
+            else:
+                raise ValueError("val_size > size of val set.")
 
     # Subsample the Test Set (If test_size is specified)
-    if (test_size is not None) and (test_size < len(test_set)):
-        # For test, you *could* do a stratified_subset if you wish to preserve coverage,
-        # but here we'll just do a random subset as the original code did.
-        indices = np.random.choice(len(test_set), test_size, replace=False)
-        test_set = Subset(test_set, indices)
-    elif (test_size is not None) and (test_size >= len(test_set)):
-        raise ValueError("test_size >= size of test set.")
+    if test_size is not None:
+        if test_size <= len(test_set):
+            test_set = stratified_subset(test_set, test_size)
+        else:
+            raise ValueError("test_size > size of test set.")
 
     # Create DataLoaders
-    if (dataset_to_use == 'imagenet') or (train_full is None):
+    if train_set is None:
         train_loader = None
+        val_loader = None
     else:
         train_loader = DataLoader(
-            train_full,
+            train_set,
             batch_size=train_batch_size,
             shuffle=True,  # still shuffle in each epoch
+            num_workers=num_workers
+        )
+        val_loader = DataLoader(
+            val_set,
+            batch_size=test_batch_size,
+            shuffle=False,
             num_workers=num_workers
         )
 
