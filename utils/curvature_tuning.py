@@ -154,8 +154,12 @@ def get_mean_beta_and_coeff(model):
 
     for module in model.modules():
         if isinstance(module, CT):
-            beta_vals.append(module.beta.detach().flatten())
-            coeff_vals.append(module.coeff.detach().flatten())
+            beta = module.beta.detach().flatten()
+            coeff = module.coeff.detach().flatten()
+            assert 0 <= beta.min() <= beta.max() <= 1
+            assert 0 <= coeff.min() <= coeff.max() <= 1
+            beta_vals.append(beta)
+            coeff_vals.append(coeff)
 
     if beta_vals and coeff_vals:
         all_beta = torch.cat(beta_vals)
@@ -165,3 +169,14 @@ def get_mean_beta_and_coeff(model):
         return mean_beta, mean_coeff
     else:
         return None, None
+
+
+def clamp_ct_params(model):
+    """
+    Clamp the beta and coeff parameters of all CT modules in the model to be between 0 and 1.
+    """
+    for module in model.modules():
+        if isinstance(module, CT):
+            with torch.no_grad():
+                module.beta.clamp_(0.0, 1.0)
+                module.coeff.clamp_(0.0, 1.0)
