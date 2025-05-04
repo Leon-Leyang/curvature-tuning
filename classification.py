@@ -139,7 +139,7 @@ def main():
     logger.info(f'Relative accuracy improvement over baseline: {rel_improve_base * 100:.2f}%')
     logger.info(f'Relative accuracy improvement over LoRA: {rel_improve_lora * 100:.2f}%')
     mean_beta, mean_coeff = get_mean_beta_and_coeff(ct_model)
-    logger.info(f'Mean Beta: {mean_beta:.2f}, Mean Coeff: {mean_coeff:.2f}')
+    logger.info(f'Mean Beta: {mean_beta:.6f}, Mean Coeff: {mean_coeff:.6f}')
 
 
 if __name__ == '__main__':
