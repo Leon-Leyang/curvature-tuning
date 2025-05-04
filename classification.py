@@ -126,6 +126,8 @@ def main():
                                           new_module=CT).to(device)
     num_params_ct = sum(param.numel() for param in ct_model.parameters() if param.requires_grad)
     logger.info(f'Number of trainable parameters: {num_params_ct}')
+    mean_beta, mean_coeff = get_mean_beta_and_coeff(ct_model)
+    logger.info(f'Mean Beta: {mean_beta:.6f}, Mean Coeff: {mean_coeff:.6f}')
     logger.info(f'Starting transfer learning...')
     ct_model = transfer(ct_model, train_loader, val_loader)
     _, ct_acc = test_epoch(-1, ct_model, test_loader, criterion, device)
