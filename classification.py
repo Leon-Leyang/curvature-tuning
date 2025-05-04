@@ -6,13 +6,14 @@ from torch import nn as nn
 from torch import optim
 from utils.data import get_data_loaders, DATASET_TO_NUM_CLASSES
 from utils.utils import get_pretrained_model, get_file_name, fix_seed, set_logger
-from utils.curvature_tuning import CT, replace_module_per_channel
+from utils.curvature_tuning import CT, replace_module_per_channel, get_mean_beta_and_coeff
 from utils.lora import get_lora_cnn
 from train import train_epoch, test_epoch, WarmUpLR
 from loguru import logger
 import copy
 import argparse
 import wandb
+import os
 
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 
@@ -51,6 +52,8 @@ def get_args():
 
 def main():
     args = get_args()
+
+    os.path.makedirs('./ckpts', exist_ok=True)
 
     f_name = get_file_name(__file__)
     log_file_path = set_logger(
@@ -109,6 +112,10 @@ def main():
     logger.info(f'CT Accuracy: {ct_acc:.2f}')
     wandb.finish()
 
+    # Save the CT model
+    torch.save(ct_model.state_dict(), f'./ckpts/{f_name}_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}.pth')
+    logger.info(f'CT model saved to ./ckpts/{f_name}_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}.pth')
+
     # Test the model with LoRA
     logger.info(f'Testing LoRA...')
     identifier = f'lora_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}'
@@ -131,6 +138,8 @@ def main():
     rel_improve_lora = (ct_acc - lora_acc) / lora_acc
     logger.info(f'Relative accuracy improvement over baseline: {rel_improve_base * 100:.2f}%')
     logger.info(f'Relative accuracy improvement over LoRA: {rel_improve_lora * 100:.2f}%')
+    mean_beta, mean_coeff = get_mean_beta_and_coeff(ct_model)
+    logger.info(f'Mean Beta: {mean_beta:.2f}, Mean Coeff: {mean_coeff:.2f}')
 
 
 if __name__ == '__main__':
