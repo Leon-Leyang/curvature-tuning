@@ -121,20 +121,20 @@ def result_exists(ds, robustness_test=None):
     return False
 
 
-def set_logger(print_level="INFO", logfile_level="DEBUG", name: str = None):
+def set_logger(log_dir='./logs', print_level="INFO", logfile_level="DEBUG", name: str = None):
     """
     Get the logger.
     The logger will be appended to a log file if it already exists.
     """
-    os.makedirs("./logs", exist_ok=True)
+    os.makedirs(log_dir, exist_ok=True)
 
     logger.remove()
     logger.add(sys.stderr, level=print_level)
-    log_file_path = f"./logs/{name}.log"
+    log_file_path = f"{log_dir}/{name}.log"
     logger.add(
         log_file_path,
         level=logfile_level,
-        mode="a"  # Append mode
+        mode="w"  # Append mode
     )
     return log_file_path
 
