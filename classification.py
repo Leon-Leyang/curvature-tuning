@@ -23,6 +23,7 @@ def transfer(model, train_loader, val_loader):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-3)
     warmup_scheduler = WarmUpLR(optimizer, len(train_loader))
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10, 20], gamma=0.1)
     best_model = None
     best_acc = 0.0
     for epoch in range(1, 31):
@@ -32,6 +33,7 @@ def transfer(model, train_loader, val_loader):
             best_model = copy.deepcopy(model)
             best_acc = val_acc
             logger.info(f'New best validation accuracy: {val_acc:.2f} at epoch {epoch}')
+        scheduler.step()
     return best_model
 
 
