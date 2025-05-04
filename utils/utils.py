@@ -50,18 +50,18 @@ def get_pretrained_model(pretrained_ds='cifar100', model_name='resnet18'):
     name_to_model = {
         'resnet18': resnet18,
         'resnet34': resnet34,
-        'resnet50': resnet50_ct,
-        'resnet101': resnet101_ct,
-        'resnet152': resnet152_ct,
+        'resnet50': resnet50,
+        'resnet101': resnet101,
+        'resnet152': resnet152,
         'swin_t': swin_t,
         'swin_s': swin_s
     }
     name_to_model_imagenet = {
         'resnet18': torchvision.models.resnet18,
         'resnet34': torchvision.models.resnet34,
-        'resnet50': torchvision.models.resnet50,
-        'resnet101': torchvision.models.resnet101,
-        'resnet152': torchvision.models.resnet152
+        'resnet50': resnet50_ct,
+        'resnet101': resnet101_ct,
+        'resnet152': resnet152_ct
     }
 
     ckpt_folder = './ckpts'
