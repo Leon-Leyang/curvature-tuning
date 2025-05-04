@@ -40,7 +40,7 @@ def train_epoch(epoch, model, trainloader, optimizer, criterion, device, warmup_
         if batch_idx % 100 == 0:
             partial_loss = running_loss / (batch_idx + 1)
             partial_accuracy = 100. * correct / total
-            logger.debug(f'Epoch {epoch}, Step {batch_idx}, Loss: {partial_loss:.6f}, Accuracy: {partial_accuracy:.2f}%')
+            logger.info(f'Epoch {epoch}, Step {batch_idx}, Loss: {partial_loss:.6f}, Accuracy: {partial_accuracy:.2f}%')
 
         if epoch <= 1 and warmup_scheduler is not None:
             warmup_scheduler.step()
@@ -76,12 +76,12 @@ def test_epoch(epoch, model, testloader, criterion, device):
     test_loss /= len(testloader)
     test_accuracy = 100. * correct / total
     if epoch != -1:
-        logger.debug(f'Epoch {epoch}, Val Loss: {test_loss:.6f}, Val Accuracy: {test_accuracy:.2f}%')
+        logger.info(f'Epoch {epoch}, Val Loss: {test_loss:.6f}, Val Accuracy: {test_accuracy:.2f}%')
 
         # Log the test loss and accuracy to wandb
         wandb.log({'epoch': epoch, 'val_loss': test_loss, 'val_accuracy': test_accuracy})
     else:
-        logger.debug(f'Loss: {test_loss:.6f}, Accuracy: {test_accuracy:.2f}%')
+        logger.info(f'Loss: {test_loss:.6f}, Accuracy: {test_accuracy:.2f}%')
 
     return test_loss, test_accuracy
 
@@ -196,7 +196,7 @@ def train(dataset, model_name, batch_size=None, learning_rate=None, num_epochs=N
 
         # Save the model with the best test loss
         if test_loss < best_test_loss:
-            logger.debug(f'Found new best model at Epoch {epoch}')
+            logger.info(f'Found new best model at Epoch {epoch}')
             best_test_loss = test_loss
             best_ckpt_path = os.path.join(ckpt_folder, f'{model_name}_{dataset}_best.pth')
             torch.save(model.state_dict(), best_ckpt_path)
