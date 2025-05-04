@@ -57,6 +57,15 @@ def main():
         name=f'{f_name}_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}')
     logger.info(f'Log file: {log_file_path}')
 
+    identifier = f'{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}'
+    wandb.init(
+        project='ct',
+        entity='leyang_hu',
+        name=identifier,
+        config=vars(args),
+    )
+
+
     fix_seed(args.seed)  # Fix the seed each time
 
     dataset = f'{args.pretrained_ds}_to_{args.transfer_ds}'
