@@ -129,8 +129,8 @@ def main():
 
     rel_improve_base = (ct_acc - relu_acc) / relu_acc
     rel_improve_lora = (ct_acc - lora_acc) / lora_acc
-    logger.info(f'Relative accuracy improvement over baseline: {rel_improve_base:.2f}')
-    logger.info(f'Relative accuracy improvement over LoRA: {rel_improve_lora:.2f}')
+    logger.info(f'Relative accuracy improvement over baseline: {rel_improve_base * 100:.2f}%')
+    logger.info(f'Relative accuracy improvement over LoRA: {rel_improve_lora * 100:.2f}%')
 
 
 if __name__ == '__main__':
