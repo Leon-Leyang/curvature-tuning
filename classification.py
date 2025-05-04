@@ -81,7 +81,7 @@ def main():
         config=vars(args),
     )
     relu_model = copy.deepcopy(model)
-    num_params_base = sum(param.numel() for param in relu_model.parameters())
+    num_params_base = sum(param.numel() for param in relu_model.parameters() if param.requires_grad)
     logger.info(f'Number of trainable parameters: {num_params_base}')
     logger.info(f'Starting transfer learning...')
     relu_model = transfer(relu_model, train_loader, val_loader)
@@ -101,7 +101,7 @@ def main():
     dummy_input_shape = (1, 3, 224, 224)
     ct_model = replace_module_per_channel(copy.deepcopy(model), dummy_input_shape, old_module=nn.ReLU,
                                           new_module=CT).to(device)
-    num_params_ct = sum(param.numel() for param in ct_model.parameters())
+    num_params_ct = sum(param.numel() for param in ct_model.parameters() if param.requires_grad)
     logger.info(f'Number of trainable parameters: {num_params_ct}')
     logger.info(f'Starting transfer learning...')
     ct_model = transfer(ct_model, train_loader, val_loader)
@@ -119,7 +119,7 @@ def main():
         config=vars(args),
     )
     lora_model = get_lora_cnn(copy.deepcopy(model), r=1, alpha=1).to(device)
-    num_params_lora = sum(param.numel() for param in lora_model.parameters())
+    num_params_lora = sum(param.numel() for param in lora_model.parameters() if param.requires_grad)
     logger.info(f'Number of trainable parameters: {num_params_lora}')
     logger.info(f'Starting transfer learning...')
     lora_model = transfer(lora_model, train_loader, val_loader)
