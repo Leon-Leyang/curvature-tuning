@@ -145,3 +145,23 @@ def replace_module_per_channel(model, input_shape, old_module=nn.ReLU, new_modul
 
     return model
 
+def get_mean_beta_and_coeff(model):
+    """
+    Iterate through the model to compute the mean of beta and coeff parameters.
+    """
+    beta_vals = []
+    coeff_vals = []
+
+    for module in model.modules():
+        if isinstance(module, CT):
+            beta_vals.append(module.beta.detach().flatten())
+            coeff_vals.append(module.coeff.detach().flatten())
+
+    if beta_vals and coeff_vals:
+        all_beta = torch.cat(beta_vals)
+        all_coeff = torch.cat(coeff_vals)
+        mean_beta = all_beta.mean().item()
+        mean_coeff = all_coeff.mean().item()
+        return mean_beta, mean_coeff
+    else:
+        return None, None
