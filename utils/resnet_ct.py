@@ -1,5 +1,5 @@
 import torch.nn as nn
-from torchvision.models.resnet import Bottleneck, _resnet
+from torchvision.models.resnet import Bottleneck, _resnet, ResNet50_Weights, ResNet101_Weights, ResNet152_Weights
 
 
 class CTBottleneck(Bottleneck):
@@ -34,10 +34,13 @@ class CTBottleneck(Bottleneck):
         return out
 
 def resnet50_ct(*, weights = None, progress: bool = True, **kwargs):
+    weights = ResNet50_Weights.verify(weights)
     return _resnet(CTBottleneck, [3, 4, 6, 3], weights, progress, **kwargs)
 
 def resnet101_ct(*, weights = None, progress: bool = True, **kwargs):
+    weights = ResNet101_Weights.verify(weights)
     return _resnet(CTBottleneck, [3, 4, 23, 3], weights, progress, **kwargs)
 
 def resnet152_ct(*, weights = None, progress: bool = True, **kwargs):
+    weights = ResNet152_Weights.verify(weights)
     return _resnet(CTBottleneck, [3, 8, 36, 3], weights, progress, **kwargs)
