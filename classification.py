@@ -65,7 +65,7 @@ def main():
     model = get_pretrained_model(args.pretrained_ds, args.model)
     for param in model.parameters():
         param.requires_grad = False
-    model.fc = nn.Linear(in_features=model.fc.in_features, out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds])
+    model.fc = nn.Linear(in_features=model.fc.in_features, out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds]).to(device)
 
     train_loader, test_loader, val_loader = get_data_loaders(dataset, args.seed)
 
