@@ -56,8 +56,9 @@ def main():
     os.makedirs('./ckpts', exist_ok=True)
 
     f_name = get_file_name(__file__)
+    transfer_ds_alias = args.transfer_ds.replace('/', '-')
     log_file_path = set_logger(
-        name=f'{f_name}_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}')
+        name=f'{f_name}_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}')
     logger.info(f'Log file: {log_file_path}')
 
     fix_seed(args.seed)  # Fix the seed each time
@@ -113,8 +114,8 @@ def main():
     wandb.finish()
 
     # Save the CT model
-    torch.save(ct_model.state_dict(), f'./ckpts/{f_name}_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}.pth')
-    logger.info(f'CT model saved to ./ckpts/{f_name}_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}.pth')
+    torch.save(ct_model.state_dict(), f'./ckpts/{f_name}_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.pth')
+    logger.info(f'CT model saved to ./ckpts/{f_name}_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.pth')
 
     # Test the model with LoRA
     logger.info(f'Testing LoRA...')

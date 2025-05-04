@@ -71,6 +71,7 @@ if __name__ == "__main__":
     for seed in seed_list:
         for model in model_list:
             for transfer_ds in dataset_list:
-                filepath = f"./logs/classification_imagenet_to_{transfer_ds}_{model}_seed{seed}.log"
+                transfer_ds_alias = transfer_ds.replace('/', '-')
+                filepath = f"./logs/classification_imagenet_to_{transfer_ds_alias}_{model}_seed{seed}.log"
                 if not os.path.exists(filepath):
                     main({'model': model, 'pretrained_ds': 'imagenet', 'transfer_ds': transfer_ds, 'seed': seed}, job_dir)
