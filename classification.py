@@ -2,14 +2,12 @@
 This script evaluates the generalization improvement achieved by CT across various image classification datasets.
 """
 import torch
-import numpy as np
 from torch import nn as nn
 from torch import optim
 from utils.data import get_data_loaders, DATASET_TO_NUM_CLASSES
-from sklearn.linear_model import LogisticRegression
-from utils.transfer_learning import FeatureExtractor, WrappedModel, extract_features
-from utils.utils import get_pretrained_model, get_file_name, fix_seed, result_exists, set_logger, plot_metric_vs_beta
+from utils.utils import get_pretrained_model, get_file_name, fix_seed, set_logger
 from utils.curvature_tuning import CT, replace_module_per_channel
+from utils.lora import get_lora_cnn
 from train import train_epoch, test_epoch, WarmUpLR
 from loguru import logger
 import copy
@@ -73,7 +71,7 @@ def main():
 
     criterion = nn.CrossEntropyLoss()
 
-    # Test the original model
+    # Test the baseline model
     logger.info('Testing baseline...')
     identifier = f'base_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}'
     wandb.init(
@@ -91,7 +89,7 @@ def main():
     logger.info(f'Baseline Accuracy: {relu_acc:.2f}')
     wandb.finish()
 
-    # Test the model with different beta values
+    # Test the model with CT
     logger.info(f'Testing CT...')
     identifier = f'ct_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}'
     wandb.init(
@@ -111,8 +109,28 @@ def main():
     logger.info(f'CT Accuracy: {ct_acc:.2f}')
     wandb.finish()
 
-    rel_improve = (ct_acc - relu_acc) / relu_acc
-    logger.info(f'Relative accuracy improvement: {rel_improve:.2f}')
+    # Test the model with LoRA
+    logger.info(f'Testing LoRA...')
+    identifier = f'lora_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}'
+    wandb.init(
+        project='ct',
+        entity='leyang_hu',
+        name=identifier,
+        config=vars(args),
+    )
+    lora_model = get_lora_cnn(copy.deepcopy(model), r=1, alpha=1).to(device)
+    num_params_lora = sum(param.numel() for param in lora_model.parameters())
+    logger.info(f'Number of trainable parameters: {num_params_lora}')
+    logger.info(f'Starting transfer learning...')
+    lora_model = transfer(lora_model, train_loader, val_loader)
+    _, lora_acc = test_epoch(-1, lora_model, test_loader, criterion, device)
+    logger.info(f'LoRA Accuracy: {lora_acc:.2f}')
+    wandb.finish()
+
+    rel_improve_base = (ct_acc - relu_acc) / relu_acc
+    rel_improve_lora = (ct_acc - lora_acc) / lora_acc
+    logger.info(f'Relative accuracy improvement over baseline: {rel_improve_base:.2f}')
+    logger.info(f'Relative accuracy improvement over LoRA: {rel_improve_lora:.2f}')
 
 
 if __name__ == '__main__':
