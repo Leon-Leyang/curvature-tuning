@@ -6,7 +6,7 @@ from torch import nn as nn
 from torch import optim
 from utils.data import get_data_loaders, DATASET_TO_NUM_CLASSES
 from utils.utils import get_pretrained_model, get_file_name, fix_seed, set_logger
-from utils.curvature_tuning import CT, replace_module_per_channel, get_mean_beta_and_coeff, clamp_ct_params
+from utils.curvature_tuning import CT, replace_module_per_channel, get_mean_beta_and_coeff
 from utils.lora import get_lora_cnn
 from train import train_epoch, test_epoch, WarmUpLR
 from loguru import logger
