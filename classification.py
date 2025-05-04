@@ -53,7 +53,7 @@ def get_args():
 def main():
     args = get_args()
 
-    os.path.makedirs('./ckpts', exist_ok=True)
+    os.makedirs('./ckpts', exist_ok=True)
 
     f_name = get_file_name(__file__)
     log_file_path = set_logger(
