@@ -57,15 +57,6 @@ def main():
         name=f'{f_name}_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}')
     logger.info(f'Log file: {log_file_path}')
 
-    identifier = f'{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}'
-    wandb.init(
-        project='ct',
-        entity='leyang_hu',
-        name=identifier,
-        config=vars(args),
-    )
-
-
     fix_seed(args.seed)  # Fix the seed each time
 
     dataset = f'{args.pretrained_ds}_to_{args.transfer_ds}'
@@ -82,6 +73,13 @@ def main():
 
     # Test the original model
     logger.info('Testing baseline...')
+    identifier = f'base_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}'
+    wandb.init(
+        project='ct',
+        entity='leyang_hu',
+        name=identifier,
+        config=vars(args),
+    )
     relu_model = copy.deepcopy(model)
     num_params_base = sum(param.numel() for param in relu_model.parameters())
     logger.info(f'Number of trainable parameters: {num_params_base}')
@@ -89,9 +87,17 @@ def main():
     relu_model = transfer(relu_model, train_loader, val_loader)
     _, relu_acc = test_epoch(-1, relu_model, test_loader, criterion, device)
     logger.info(f'Baseline Accuracy: {relu_acc:.2f}')
+    wandb.finish()
 
     # Test the model with different beta values
     logger.info(f'Testing CT...')
+    identifier = f'ct_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}'
+    wandb.init(
+        project='ct',
+        entity='leyang_hu',
+        name=identifier,
+        config=vars(args),
+    )
     dummy_input_shape = (1, 3, 224, 224)
     ct_model = replace_module_per_channel(copy.deepcopy(model), dummy_input_shape, old_module=nn.ReLU,
                                           new_module=CT).to(device)
@@ -101,6 +107,7 @@ def main():
     ct_model = transfer(ct_model, train_loader, val_loader)
     _, ct_acc = test_epoch(-1, ct_model, test_loader, criterion, device)
     logger.info(f'CT Accuracy: {ct_acc:.2f}')
+    wandb.finish()
 
     rel_improve = (ct_acc - relu_acc) / relu_acc
     logger.info(f'Relative accuracy improvement: {rel_improve:.2f}')
