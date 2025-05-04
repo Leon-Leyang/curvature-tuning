@@ -17,19 +17,19 @@ NORMALIZATION_VALUES = {
     'cifar100': ([0.507, 0.487, 0.441], [0.267, 0.256, 0.276]),
     'mnist': ([0.131, 0.131, 0.131], [0.308, 0.308, 0.308]),
     'imagenet': ([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-    'arabic_characters': ([0.101, 0.101, 0.101], [0.301, 0.301, 0.301]),
-    'arabic_digits': ([0.165, 0.165, 0.165], [0.371, 0.371, 0.371]),
+    'arabic-characters': ([0.101, 0.101, 0.101], [0.301, 0.301, 0.301]),
+    'arabic-digits': ([0.165, 0.165, 0.165], [0.371, 0.371, 0.371]),
     'beans': ([0.485, 0.518, 0.313], [0.211, 0.223, 0.2]),
     'cub200': ([0.486, 0.5, 0.433], [0.232, 0.228, 0.267]),
     'dtd': ([0.531, 0.475, 0.427], [0.271, 0.263, 0.271]),
     'food101': ([0.549, 0.445, 0.344], [0.273, 0.276, 0.28]),
-    'fgvc_aircraft': ([0.485, 0.52, 0.548], [0.219, 0.21, 0.241]),
+    'fgvc-aircraft': ([0.485, 0.52, 0.548], [0.219, 0.21, 0.241]),
     'flowers102': ([0.43, 0.38, 0.295], [0.295, 0.246, 0.273]),
-    'fashion_mnist': ([0.286, 0.286, 0.286], [0.353, 0.353, 0.353]),
-    'med_mnist/pathmnist': ([0.741, 0.533, 0.706], [0.124, 0.177, 0.124]),
-    'med_mnist/octmnist': ([0.189, 0.189, 0.189], [0.196, 0.196, 0.196]),
-    'med_mnist/dermamnist': ([0.763, 0.538, 0.561], [0.137, 0.154, 0.169]),
-    'celeb_a': ([0.506, 0.426, 0.383], [0.311, 0.29, 0.29]),
+    'fashion-mnist': ([0.286, 0.286, 0.286], [0.353, 0.353, 0.353]),
+    'medmnist/pathmnist': ([0.741, 0.533, 0.706], [0.124, 0.177, 0.124]),
+    'medmnist/octmnist': ([0.189, 0.189, 0.189], [0.196, 0.196, 0.196]),
+    'medmnist/dermamnist': ([0.763, 0.538, 0.561], [0.137, 0.154, 0.169]),
+    'celeb-a': ([0.506, 0.426, 0.383], [0.311, 0.29, 0.29]),
     'dsprites': ([0.0, 0.0, 0.0], [0.001, 0.001, 0.001]),
     'imagenette': ([0.459, 0.455, 0.429], [0.286, 0.282, 0.305]),
 }
@@ -40,19 +40,19 @@ DATASET_TO_NUM_CLASSES = {
     'cifar100': 100,
     'mnist': 10,
     'imagenet': 1000,
-    'arabic_characters': 28,
-    'arabic_digits': 10,
+    'arabic-characters': 28,
+    'arabic-digits': 10,
     'beans': 3,
     'cub200': 200,
     'dtd': 47,
     'food101': 101,
-    'fgvc_aircraft': 100,
+    'fgvc-aircraft': 100,
     'flowers102': 102,
-    'fashion_mnist': 10,
-    'med_mnist/pathmnist': 9,
-    'med_mnist/octmnist': 4,
-    'med_mnist/dermamnist': 7,
-    'celeb_a': 40,
+    'fashion-mnist': 10,
+    'medmnist/pathmnist': 9,
+    'medmnist/octmnist': 4,
+    'medmnist/dermamnist': 7,
+    'celeb-a': 40,
     'dsprites': 1,
     'imagenette': 10,
 }
@@ -176,7 +176,7 @@ def get_data_loaders(dataset,
 
     # If transform_train/test not specified, define some defaults:
     if transform_train is None and transform_test is None:
-        if transform_to_use in ['cifar10', 'cifar100', 'arabic_characters', 'arabic_digits']:
+        if transform_to_use in ['cifar10', 'cifar100', 'arabic-characters', 'arabic-digits']:
             transform_train = transforms.Compose([
                 transforms.RandomCrop(32, padding=4),
                 transforms.RandomHorizontalFlip(),
@@ -192,8 +192,8 @@ def get_data_loaders(dataset,
                 transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
             ])
         elif transform_to_use in [
-            'mnist','fashion_mnist','med_mnist/pathmnist',
-            'med_mnist/octmnist','med_mnist/dermamnist','dsprites']:
+            'mnist','fashion-mnist','medmnist/pathmnist',
+            'medmnist/octmnist','medmnist/dermamnist','dsprites']:
             transform_train = transforms.Compose([
                 transforms.Resize(28),
                 transforms.ToTensor(),
@@ -207,8 +207,8 @@ def get_data_loaders(dataset,
                 transforms.Normalize(*NORMALIZATION_VALUES[normalization_to_use])
             ])
         elif transform_to_use in [
-            'imagenet','fgvc_aircraft','places365_small','flowers102',
-            'beans','cub200','dtd','food101','celeb_a','imagenette']:
+            'imagenet','fgvc-aircraft','places365-small','flowers102',
+            'beans','cub200','dtd','food101','celeb-a','imagenette']:
             transform_train = transforms.Compose([
                 transforms.Resize(256),
                 transforms.CenterCrop(224),
@@ -249,9 +249,8 @@ def get_data_loaders(dataset,
         test_set = torchvision.datasets.ImageNet(
             root='./data/imagenet', split='val', transform=transform_test)
 
-    elif dataset_to_use in ['arabic_characters','fashion_mnist','arabic_digits',
+    elif dataset_to_use in ['arabic-characters','fashion-mnist','arabic-digits',
                             'cub200','food101','dsprites','imagenette']:
-        dataset_to_use = dataset_to_use.replace('_', '-')
         hf_trainset = datasets.load_dataset(
             f"randall-lab/{dataset_to_use}",
             split="train",
@@ -265,8 +264,7 @@ def get_data_loaders(dataset,
         train_set = HuggingFaceDataset(hf_trainset, transform=transform_train)
         test_set  = HuggingFaceDataset(hf_testset, transform=transform_test)
 
-    elif dataset_to_use in ['fgvc_aircraft','flowers102','beans','dtd','celeb_a']:
-        dataset_to_use = dataset_to_use.replace('_', '-')
+    elif dataset_to_use in ['fgvc-aircraft','flowers102','beans','dtd','celeb-a']:
         hf_trainset = datasets.load_dataset(
             f"randall-lab/{dataset_to_use}",
             split="train",
@@ -286,7 +284,7 @@ def get_data_loaders(dataset,
         val_set    = HuggingFaceDataset(hf_valset, transform=transform_test)
         test_set    = HuggingFaceDataset(hf_testset, transform=transform_test)
 
-    elif dataset_to_use in ['med_mnist/pathmnist','med_mnist/octmnist','med_mnist/dermamnist']:
+    elif dataset_to_use in ['medmnist/pathmnist','medmnist/octmnist','medmnist/dermamnist']:
         name = dataset_to_use.split('/')[-1]
         hf_trainset = datasets.load_dataset(
             "randall-lab/medmnist",
