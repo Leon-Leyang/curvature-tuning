@@ -112,7 +112,7 @@ def main():
     logger.info(f'Starting transfer learning...')
     relu_model = transfer(relu_model, train_loader, val_loader)
     _, relu_acc = test_epoch(-1, relu_model, test_loader, criterion, device)
-    logger.info(f'Baseline Accuracy: {relu_acc:.2f}')
+    logger.info(f'Baseline Accuracy: {relu_acc:.2f}%')
     wandb.finish()
 
     # Test the model with CT
@@ -134,7 +134,7 @@ def main():
     logger.info(f'Starting transfer learning...')
     ct_model = transfer(ct_model, train_loader, val_loader)
     _, ct_acc = test_epoch(-1, ct_model, test_loader, criterion, device)
-    logger.info(f'CT Accuracy: {ct_acc:.2f}')
+    logger.info(f'CT Accuracy: {ct_acc:.2f}%')
     wandb.finish()
 
     # Save the CT model
@@ -156,7 +156,7 @@ def main():
     logger.info(f'Starting transfer learning...')
     lora_model = transfer(lora_model, train_loader, val_loader)
     _, lora_acc = test_epoch(-1, lora_model, test_loader, criterion, device)
-    logger.info(f'LoRA Accuracy: {lora_acc:.2f}')
+    logger.info(f'LoRA Accuracy: {lora_acc:.2f}%')
     wandb.finish()
 
     rel_improve_base = (ct_acc - relu_acc) / relu_acc
