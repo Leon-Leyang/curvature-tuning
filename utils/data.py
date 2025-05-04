@@ -315,7 +315,7 @@ def get_data_loaders(dataset,
 
     if train_set is not None and val_set is None:
         # If val_set is not specified, split the train_set into train and val
-        default_val_size = 0.2 * len(train_set)
+        default_val_size = int(0.2 * len(train_set))
         train_set, val_set = stratified_two_split(train_set, default_val_size, seed)
 
     # Subsample the Train Set (If train_size is specified)
