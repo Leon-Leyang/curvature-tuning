@@ -32,10 +32,10 @@ class CT(nn.Module):
         param_shape[channel_dim] = out_channels
 
         # Init beta
-        self._raw_beta = nn.Parameter(torch.full(param_shape, raw_beta))
+        self._raw_beta = nn.Parameter(torch.full(param_shape, float(raw_beta)))
 
         # Init coeff
-        self._raw_coeff = nn.Parameter(torch.full(param_shape, raw_coeff))
+        self._raw_coeff = nn.Parameter(torch.full(param_shape, float(raw_coeff)))
 
     @property
     def beta(self):
