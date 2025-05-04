@@ -15,7 +15,7 @@ class CT(nn.Module):
     CT(x) = coeff * sigmoid(beta * x / (1 - beta)) * x +
              (1 - coeff) * softplus(x / (1 - beta)) * (1 - beta)
     """
-    def __init__(self, num_input_dims, out_channels, raw_beta=1.1, raw_coeff=0.0, threshold=20):
+    def __init__(self, num_input_dims, out_channels, raw_beta=1.386, raw_coeff=0.0, threshold=20):
         super().__init__()
 
         self.threshold = threshold
