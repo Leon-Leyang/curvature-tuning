@@ -8,6 +8,7 @@ from torch.utils.data import Subset, DataLoader, random_split
 from torchvision import transforms as transforms
 import datasets
 from sklearn.model_selection import StratifiedShuffleSplit
+from utils.utils import fix_seed
 
 
 # Predefined normalization values for different datasets
@@ -102,7 +103,7 @@ def get_labels_from_subset(ds):
         labels = [ds[i][1] for i in range(len(ds))]
     return np.array(labels)
 
-def stratified_two_split(full_dataset, val_size):
+def stratified_two_split(full_dataset, val_size, seed=42):
     """
     Perform a single stratified split on 'full_dataset' of size len(full_dataset).
     'val_size' should be the absolute number of samples for the val subset.
@@ -118,7 +119,7 @@ def stratified_two_split(full_dataset, val_size):
     # We want 'val_size' samples for val.
     # In StratifiedShuffleSplit, we typically specify fractions or absolute counts
     # by setting 'test_size'. So we do:
-    sss = StratifiedShuffleSplit(n_splits=1, test_size=val_size, random_state=42)
+    sss = StratifiedShuffleSplit(n_splits=1, test_size=val_size, random_state=seed)
     train_idx, val_idx = next(sss.split(X, y))
 
     train_subset = Subset(full_dataset, train_idx)
@@ -126,7 +127,7 @@ def stratified_two_split(full_dataset, val_size):
     return train_subset, val_subset
 
 
-def stratified_subset(full_dataset, n_samples):
+def stratified_subset(full_dataset, n_samples, seed=42):
     """
     Return a new Subset of 'dataset' with 'n_samples' selected via stratified sampling,
     ensuring that every class is present (assuming n_samples >= number_of_classes).
@@ -143,7 +144,7 @@ def stratified_subset(full_dataset, n_samples):
         )
 
     X = np.arange(len(full_dataset))
-    sss = StratifiedShuffleSplit(n_splits=1, train_size=n_samples, random_state=42)
+    sss = StratifiedShuffleSplit(n_splits=1, train_size=n_samples, random_state=seed)
     sub_idx, _ = next(sss.split(X, labels))
     return Subset(full_dataset, sub_idx)
 
@@ -156,10 +157,13 @@ def get_data_loaders(dataset,
                      val_size=None,
                      num_workers=6,
                      transform_train=None,
-                     transform_test=None):
+                     transform_test=None,
+                     seed=42):
     """
     Get train, test, and val DataLoaders.
     """
+    fix_seed(seed)
+
     # Identify which transformations to apply based on dataset name
     if '_to_' in dataset:  # e.g., cifar10_to_cifar100
         transform_to_use = dataset.split('_to_')[0]
@@ -312,27 +316,27 @@ def get_data_loaders(dataset,
     if train_set is not None and val_set is None:
         # If val_set is not specified, split the train_set into train and val
         default_val_size = 0.2 * len(train_set)
-        train_set, val_set = stratified_two_split(train_set, default_val_size)
+        train_set, val_set = stratified_two_split(train_set, default_val_size, seed)
 
     # Subsample the Train Set (If train_size is specified)
     if train_set is not None:
         if train_size is not None:
             if train_size <= len(train_set):
-                train_set = stratified_subset(train_set, train_size)
+                train_set = stratified_subset(train_set, train_size, seed)
             else:
                 raise ValueError("train_size > size of train set.")
 
         # Subsample the Val Set (If val_size is specified)
         if val_size is not None:
             if val_size <= len(val_set):
-                val_set = stratified_subset(val_set, val_size)
+                val_set = stratified_subset(val_set, val_size, seed)
             else:
                 raise ValueError("val_size > size of val set.")
 
     # Subsample the Test Set (If test_size is specified)
     if test_size is not None:
         if test_size <= len(test_set):
-            test_set = stratified_subset(test_set, test_size)
+            test_set = stratified_subset(test_set, test_size, seed)
         else:
             raise ValueError("test_size > size of test set.")
 
