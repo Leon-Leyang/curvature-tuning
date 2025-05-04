@@ -6,6 +6,7 @@ import sys
 import torchvision
 from torch import nn as nn
 from torchvision.models import swin_t, swin_s
+from utils.resnet_ct import resnet50_ct, resnet101_ct, resnet152_ct
 from matplotlib import pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 from utils.model import *
@@ -49,9 +50,9 @@ def get_pretrained_model(pretrained_ds='cifar100', model_name='resnet18'):
     name_to_model = {
         'resnet18': resnet18,
         'resnet34': resnet34,
-        'resnet50': resnet50,
-        'resnet101': resnet101,
-        'resnet152': resnet152,
+        'resnet50': resnet50_ct,
+        'resnet101': resnet101_ct,
+        'resnet152': resnet152_ct,
         'swin_t': swin_t,
         'swin_s': swin_s
     }
