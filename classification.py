@@ -88,7 +88,10 @@ def main():
     model = get_pretrained_model(args.pretrained_ds, args.model)
     for param in model.parameters():
         param.requires_grad = False
-    model.fc = nn.Linear(in_features=model.fc.in_features, out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds]).to(device)
+    if 'swin' not in args.model:
+        model.fc = nn.Linear(in_features=model.fc.in_features, out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds]).to(device)
+    else:
+        model.head = nn.Linear(in_features=model.head.in_features, out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds]).to(device)
 
     train_loader, test_loader, val_loader = get_data_loaders(dataset, args.seed)
 
