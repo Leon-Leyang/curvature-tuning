@@ -27,6 +27,8 @@ def main(kwargs, job_dir):
 
     command = (
         "module load miniconda3/23.11.0s && "
+        "source /oscar/runtime/software/external/miniconda3/23.11.0/etc/profile.d/conda.sh && "
+        "conda deactivate && "
         "conda activate spline && "
         f"python -u classification.py --model {model} --pretrained_ds {pretrained_ds} --transfer_ds {transfer_ds} --seed {seed}"
     )
