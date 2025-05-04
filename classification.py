@@ -166,6 +166,9 @@ def main():
     mean_beta, mean_coeff = get_mean_beta_and_coeff(ct_model)
     logger.info(f'Mean Beta: {mean_beta:.6f}, Mean Coeff: {mean_coeff:.6f}')
 
+    if num_params_lora < num_params_ct:
+        logger.warning(f'LoRA model has fewer trainable parameters than CT model: {num_params_lora} < {num_params_ct}')
+
 
 if __name__ == '__main__':
     main()
