@@ -149,8 +149,8 @@ def stratified_subset(full_dataset, n_samples):
 
 
 def get_data_loaders(dataset,
-                     train_batch_size=500,
-                     test_batch_size=500,
+                     train_batch_size=128,
+                     test_batch_size=1024,
                      train_size=None,
                      test_size=None,
                      val_size=None,
