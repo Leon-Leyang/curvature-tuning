@@ -20,7 +20,25 @@ device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.ba
 
 def transfer(model, train_loader, val_loader):
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-3)
+
+    ct_params = []
+    other_params = []
+
+    for module in model.modules():
+        if isinstance(module, CT):
+            ct_params += [p for p in module.parameters() if p.requires_grad]
+        else:
+            other_params += [p for p in module.parameters() if p.requires_grad]
+
+    # Avoid duplicates since the search is done in a nested loop
+    ct_param_set = set(ct_params)
+    other_params = [p for p in other_params if p not in ct_param_set]
+
+    optimizer = torch.optim.Adam([
+        {'params': ct_params, 'lr': 1e-1},
+        {'params': other_params, 'lr': 1e-3}
+    ])
+
     warmup_scheduler = WarmUpLR(optimizer, len(train_loader))
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10, 20], gamma=0.1)
     best_model = None
