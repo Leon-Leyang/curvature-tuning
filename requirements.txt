@@ -15,3 +15,4 @@ scikit-learn==1.5.2
 loguru==0.7.2
 datasets==3.4.1
 opencv-python==4.11.0.86
+submitit==1.5.2
