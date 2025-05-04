@@ -76,7 +76,7 @@ def test_epoch(epoch, model, testloader, criterion, device):
     test_loss /= len(testloader)
     test_accuracy = 100. * correct / total
     if epoch != -1:
-        logger.debug(f'Test Epoch {epoch}, Loss: {test_loss:.6f}, Accuracy: {test_accuracy:.2f}%')
+        logger.debug(f'Epoch {epoch}, Val Loss: {test_loss:.6f}, Val Accuracy: {test_accuracy:.2f}%')
 
         # Log the test loss and accuracy to wandb
         wandb.log({'epoch': epoch, 'val_loss': test_loss, 'val_accuracy': test_accuracy})
