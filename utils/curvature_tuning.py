@@ -15,7 +15,7 @@ class CT(nn.Module):
     CT(x) = coeff * sigmoid(beta * x / (1 - beta)) * x +
              (1 - coeff) * softplus(x / (1 - beta)) * (1 - beta)
     """
-    def __init__(self, num_input_dims, out_channels, beta=1.0, coeff=0.5, threshold=20):
+    def __init__(self, num_input_dims, out_channels, raw_beta=10, raw_coeff=0, threshold=20):
         super().__init__()
 
         self.threshold = threshold
@@ -32,10 +32,18 @@ class CT(nn.Module):
         param_shape[channel_dim] = out_channels
 
         # Init beta
-        self.beta = nn.Parameter(torch.full(param_shape, beta))
+        self._raw_beta = nn.Parameter(torch.full(param_shape, raw_beta))
 
         # Init coeff
-        self.coeff = nn.Parameter(torch.full(param_shape, coeff))
+        self._raw_coeff = nn.Parameter(torch.full(param_shape, raw_coeff))
+
+    @property
+    def beta(self):
+        return torch.sigmoid(self._raw_beta)
+
+    @property
+    def coeff(self):
+        return torch.sigmoid(self._raw_coeff)
 
     def forward(self, x):
         return (self.coeff * torch.sigmoid(self.beta * x / (1 - self.beta)) * x +
@@ -169,14 +177,3 @@ def get_mean_beta_and_coeff(model):
         return mean_beta, mean_coeff
     else:
         return None, None
-
-
-def clamp_ct_params(model):
-    """
-    Clamp the beta and coeff parameters of all CT modules in the model to be between 0 and 1.
-    """
-    for module in model.modules():
-        if isinstance(module, CT):
-            with torch.no_grad():
-                module.beta.clamp_(0.0, 1.0)
-                module.coeff.clamp_(0.0, 1.0)

@@ -18,7 +18,7 @@ import os
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 
 
-def transfer(model, train_loader, val_loader, use_ct=False):
+def transfer(model, train_loader, val_loader):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-3)
     warmup_scheduler = WarmUpLR(optimizer, len(train_loader))
@@ -26,10 +26,8 @@ def transfer(model, train_loader, val_loader, use_ct=False):
     best_model = None
     best_acc = 0.0
 
-    train_func = train_epoch_with_ct if use_ct else train_epoch
-
     for epoch in range(1, 31):
-        train_func(epoch, model, train_loader, optimizer, criterion, device, warmup_scheduler)
+        train_epoch(epoch, model, train_loader, optimizer, criterion, device, warmup_scheduler)
         _, val_acc = test_epoch(epoch, model, val_loader, criterion, device)
         if val_acc > best_acc:
             best_model = copy.deepcopy(model)
@@ -37,45 +35,6 @@ def transfer(model, train_loader, val_loader, use_ct=False):
             logger.info(f'New best validation accuracy: {val_acc:.2f} at epoch {epoch}')
         scheduler.step()
     return best_model
-
-
-def train_epoch_with_ct(epoch, model, trainloader, optimizer, criterion, device, warmup_scheduler):
-    """
-    Train the model for one epoch with Curvature Tuning (CT).
-    It just clamps the beta and coeff values to be between 0 and 1 after each optimization step.
-    """
-    model.train()
-    running_loss = 0.0
-    correct = 0
-    total = 0
-    for batch_idx, (inputs, targets) in enumerate(trainloader):
-        inputs, targets = inputs.to(device), targets.to(device)
-        optimizer.zero_grad()
-        outputs = model(inputs)
-        loss = criterion(outputs, targets)
-        loss.backward()
-        optimizer.step()
-        clamp_ct_params(model)
-
-        running_loss += loss.item()
-        _, predicted = outputs.max(1)
-        total += targets.size(0)
-        correct += predicted.eq(targets).sum().item()
-
-        if batch_idx % 100 == 0:
-            partial_loss = running_loss / (batch_idx + 1)
-            partial_accuracy = 100. * correct / total
-            logger.info(f'Epoch {epoch}, Step {batch_idx}, Loss: {partial_loss:.6f}, Accuracy: {partial_accuracy:.2f}%')
-
-        if epoch <= 1 and warmup_scheduler is not None:
-            warmup_scheduler.step()
-
-    # Compute final epoch loss and accuracy
-    train_loss = running_loss / len(trainloader)
-    train_accuracy = 100. * correct / total
-
-    wandb.log({'epoch': epoch, 'train_loss': train_loss, 'train_accuracy': train_accuracy, 'lr': optimizer.param_groups[0]['lr']})
-    return train_loss
 
 
 def get_args():
@@ -150,7 +109,7 @@ def main():
     num_params_ct = sum(param.numel() for param in ct_model.parameters() if param.requires_grad)
     logger.info(f'Number of trainable parameters: {num_params_ct}')
     logger.info(f'Starting transfer learning...')
-    ct_model = transfer(ct_model, train_loader, val_loader, use_ct=True)
+    ct_model = transfer(ct_model, train_loader, val_loader)
     _, ct_acc = test_epoch(-1, ct_model, test_loader, criterion, device)
     logger.info(f'CT Accuracy: {ct_acc:.2f}')
     wandb.finish()
