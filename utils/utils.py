@@ -14,6 +14,7 @@ import numpy as np
 from loguru import logger
 import random
 from utils.curvature_tuning import replace_module
+import json
 
 
 class MLP(nn.Module):
@@ -186,3 +187,13 @@ def plot_metric_vs_beta(acc_list, beta_list, base_acc, dataset, robust_config=No
 
 def count_trainable_parameters(model: nn.Module) -> int:
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
+def save_result_json(file_path, num_params, acc):
+    data = {
+        'num_params': num_params,
+        'accuracy': acc
+    }
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    with open(file_path, 'w') as f:
+        json.dump(data, f, indent=2)

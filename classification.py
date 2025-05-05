@@ -5,7 +5,7 @@ import torch
 from torch import nn as nn
 from torch import optim
 from utils.data import get_data_loaders, DATASET_TO_NUM_CLASSES
-from utils.utils import get_pretrained_model, get_file_name, fix_seed, set_logger
+from utils.utils import get_pretrained_model, get_file_name, fix_seed, set_logger, save_result_json
 from utils.curvature_tuning import CT, replace_module_per_channel, get_mean_beta_and_coeff
 from utils.lora import get_lora_cnn
 from train import train_epoch, test_epoch, WarmUpLR
@@ -178,6 +178,13 @@ def main():
     logger.info(f'Relative accuracy improvement over LoRA: {rel_improve_lora * 100:.2f}%')
     mean_beta, mean_coeff = get_mean_beta_and_coeff(ct_model)
     logger.info(f'Mean Beta: {mean_beta:.6f}, Mean Coeff: {mean_coeff:.6f}')
+
+    # Save the results
+    os.makedirs('./results', exist_ok=True)
+    save_result_json(f'./results/base_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.json', num_params_base, relu_acc)
+    save_result_json(f'./results/ct_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.json', num_params_ct, ct_acc)
+    save_result_json(f'./results/lora_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.json', num_params_lora, lora_acc)
+    logger.info('Results saved to ./results/')
 
 
 if __name__ == '__main__':
