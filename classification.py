@@ -166,15 +166,18 @@ def main():
     logger.info(f'LoRA Accuracy: {lora_acc:.2f}%')
     wandb.finish()
 
+    # Log the summary
+    logger.info(f'Baseline model trainable parameters: {num_params_base}')
+    logger.info(f'CT model trainable parameters: {num_params_ct}')
+    logger.info(f'LoRA model trainable parameters: {num_params_lora}')
+    if num_params_lora < num_params_ct:
+        logger.warning(f'LoRA model has fewer trainable parameters than CT model: {num_params_lora} < {num_params_ct}')
     rel_improve_base = (ct_acc - relu_acc) / relu_acc
     rel_improve_lora = (ct_acc - lora_acc) / lora_acc
     logger.info(f'Relative accuracy improvement over baseline: {rel_improve_base * 100:.2f}%')
     logger.info(f'Relative accuracy improvement over LoRA: {rel_improve_lora * 100:.2f}%')
     mean_beta, mean_coeff = get_mean_beta_and_coeff(ct_model)
     logger.info(f'Mean Beta: {mean_beta:.6f}, Mean Coeff: {mean_coeff:.6f}')
-
-    if num_params_lora < num_params_ct:
-        logger.warning(f'LoRA model has fewer trainable parameters than CT model: {num_params_lora} < {num_params_ct}')
 
 
 if __name__ == '__main__':
