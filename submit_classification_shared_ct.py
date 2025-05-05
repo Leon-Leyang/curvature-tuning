@@ -17,6 +17,7 @@ def main(kwargs, job_dir):
         mem_gb=48,                # Memory allocation
         slurm_ntasks_per_node=1,  # Number of tasks per node
         cpus_per_task=6,          # Number of CPUs per task
+        gpus_per_node=1,          # Number of GPUs to use
         nodes=1,                  # Number of nodes
         timeout_min=5760,         # Maximum duration in minutes
         slurm_partition="cs-all-gcondo", # Partition name
