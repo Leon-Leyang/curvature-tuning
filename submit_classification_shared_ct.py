@@ -20,7 +20,7 @@ def main(kwargs, job_dir):
         gpus_per_node=1,          # Number of GPUs to use
         nodes=1,                  # Number of nodes
         timeout_min=5760,         # Maximum duration in minutes
-        slurm_partition="cs-all-gcondo", # Partition name
+        slurm_partition="gpu", # Partition name
         slurm_job_name=f"shared_ct_{pretrained_ds}_to_{transfer_ds}_{model}_seed{seed}",  # Job name
         slurm_mail_type="ALL",    # Email settings
         slurm_mail_user="leyang_hu@brown.edu",  # Email address
