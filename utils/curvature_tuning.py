@@ -46,8 +46,13 @@ class CT(nn.Module):
         return torch.sigmoid(self._raw_coeff)
 
     def forward(self, x):
-        return (self.coeff * torch.sigmoid(self.beta * x / (1 - self.beta)) * x +
-                (1 - self.coeff) * F.softplus(x / (1 - self.beta), threshold=self.threshold) * (1 - self.beta))
+        beta = torch.sigmoid(self._raw_beta)
+        coeff = torch.sigmoid(self._raw_coeff)
+        one_minus_beta = 1 - beta
+        x_scaled = x / one_minus_beta
+
+        return (coeff * torch.sigmoid(beta * x_scaled) * x +
+                (1 - coeff) * F.softplus(x_scaled, threshold=self.threshold) * one_minus_beta)
 
 
 class SharedCT(nn.Module):
@@ -70,8 +75,13 @@ class SharedCT(nn.Module):
         return torch.sigmoid(self._raw_coeff)
 
     def forward(self, x):
-        return (self.coeff * torch.sigmoid(self.beta * x / (1 - self.beta)) * x +
-                (1 - self.coeff) * F.softplus(x / (1 - self.beta), threshold=self.threshold) * (1 - self.beta))
+        beta = torch.sigmoid(self._raw_beta)
+        coeff = torch.sigmoid(self._raw_coeff)
+        one_minus_beta = 1 - beta
+        x_scaled = x / one_minus_beta
+
+        return (coeff * torch.sigmoid(beta * x_scaled) * x +
+                (1 - coeff) * F.softplus(x_scaled, threshold=self.threshold) * one_minus_beta)
 
 
 class ReplacementMapping:
