@@ -18,7 +18,7 @@ def main(kwargs, job_dir):
         slurm_ntasks_per_node=1,  # Number of tasks per node
         cpus_per_task=6,          # Number of CPUs per task
         nodes=1,                  # Number of nodes
-        timeout_min=240,         # Maximum duration in minutes
+        timeout_min=1440,         # Maximum duration in minutes
         slurm_partition="gpu", # Partition name
         slurm_job_name=f"{pretrained_ds}_to_{transfer_ds}_{model}_seed{seed}",  # Job name
         slurm_mail_type="ALL",    # Email settings
@@ -36,6 +36,13 @@ def main(kwargs, job_dir):
     # Submit the job
     job = executor.submit(os.system, command)
     print(f"Job submitted for model {model} on dataset {pretrained_ds}_to_{transfer_ds} with seed {seed} with job ID {job.job_id}")
+
+
+def job_completed(filepath):
+    if not os.path.exists(filepath):
+        return False
+    with open(filepath, "r") as f:
+        return "Relative accuracy improvement over baseline" in f.read()
 
 
 if __name__ == "__main__":
@@ -73,5 +80,5 @@ if __name__ == "__main__":
             for transfer_ds in dataset_list:
                 transfer_ds_alias = transfer_ds.replace('/', '-')
                 filepath = f"./logs/classification_imagenet_to_{transfer_ds_alias}_{model}_seed{seed}.log"
-                if not os.path.exists(filepath):
+                if not job_completed(filepath):
                     main({'model': model, 'pretrained_ds': 'imagenet', 'transfer_ds': transfer_ds, 'seed': seed}, job_dir)
