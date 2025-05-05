@@ -8,7 +8,7 @@ from utils.data import get_data_loaders, DATASET_TO_NUM_CLASSES
 from utils.utils import get_pretrained_model, get_file_name, fix_seed, set_logger, save_result_json
 from utils.curvature_tuning import CT, replace_module_per_channel, get_mean_beta_and_coeff
 from utils.lora import get_lora_cnn
-from train import train_epoch, test_epoch, WarmUpLR
+from train import train_epoch, test_epoch, WarmUpLR, linear_probe
 from loguru import logger
 import copy
 import argparse
@@ -112,7 +112,7 @@ def main():
     logger.info(f'Number of trainable parameters: {num_params_base}')
     logger.info(f'Starting transfer learning...')
     start_time = time.perf_counter()
-    base_model = transfer(base_model, train_loader, val_loader)
+    base_model = linear_probe(base_model, train_loader, val_loader)
     end_time = time.perf_counter()
     base_transfer_time = int(end_time - start_time)
     logger.info(f'Baseline Transfer learning time: {base_transfer_time} seconds')
@@ -122,6 +122,9 @@ def main():
     base_test_time = int(end_time - start_time)
     logger.info(f'Baseline Test time: {base_test_time} seconds')
     logger.info(f'Baseline Accuracy: {base_acc:.2f}%')
+    os.makedirs('./ckpts', exist_ok=True)
+    torch.save(base_model.state_dict(), f'./ckpts/base_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.pth')
+    logger.info(f'Baseline model saved to ./ckpts/base_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.pth')
     wandb.log({'test_accuracy': base_acc, 'transfer_time': base_transfer_time, 'test_time': base_test_time, 'num_params': num_params_base})
     wandb.finish()
 
@@ -158,7 +161,6 @@ def main():
     logger.info(f'Mean Beta: {mean_beta:.6f}, Mean Coeff: {mean_coeff:.6f}')
 
     # Save the CT model
-    os.makedirs('./ckpts', exist_ok=True)
     torch.save(ct_model.state_dict(), f'./ckpts/ct_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.pth')
     logger.info(f'CT model saved to ./ckpts/ct_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.pth')
     wandb.log({'test_accuracy': ct_acc, 'transfer_time': ct_transfer_time, 'test_time': ct_test_time, 'num_params': num_params_ct})
@@ -197,6 +199,8 @@ def main():
     lora_test_time = int(end_time - start_time)
     logger.info(f'LoRA Test time: {lora_test_time} seconds')
     logger.info(f'LoRA Accuracy: {lora_acc:.2f}%')
+    torch.save(lora_model.state_dict(), f'./ckpts/lora_rank{lora_rank}_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.pth')
+    logger.info(f'LoRA model saved to ./ckpts/lora_rank{lora_rank}_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.pth')
     wandb.log({'test_accuracy': lora_acc, 'transfer_time': lora_transfer_time, 'test_time': lora_test_time, 'num_params': num_params_lora})
     wandb.finish()
 
