@@ -128,8 +128,8 @@ def main():
                               shared_raw_beta=shared_raw_beta, shared_raw_coeff=shared_raw_coeff).to(device)
     num_params_ct = sum(param.numel() for param in ct_model.parameters() if param.requires_grad)
     logger.info(f'Number of trainable parameters: {num_params_ct}')
-    beta = shared_raw_beta.item()
-    coeff = shared_raw_coeff.item()
+    beta = torch.sigmoid(shared_raw_beta).item()
+    coeff = torch.sigmoid(shared_raw_coeff).item()
     logger.info(f'Beta: {beta:.6f}, Coeff: {coeff:.6f}')
     logger.info(f'Starting transfer learning...')
     ct_model = transfer(ct_model, train_loader, val_loader)
@@ -177,8 +177,8 @@ def main():
     # rel_improve_lora = (ct_acc - lora_acc) / lora_acc
     # logger.info(f'Relative accuracy improvement over baseline: {rel_improve_base * 100:.2f}%')
     # logger.info(f'Relative accuracy improvement over LoRA: {rel_improve_lora * 100:.2f}%')
-    beta = shared_raw_beta.item()
-    coeff = shared_raw_coeff.item()
+    beta = torch.sigmoid(shared_raw_beta).item()
+    coeff = torch.sigmoid(shared_raw_coeff).item()
     logger.info(f'Beta: {beta:.6f}, Coeff: {coeff:.6f}')
 
     # Save the results
