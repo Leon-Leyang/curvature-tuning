@@ -138,8 +138,8 @@ def main():
     wandb.finish()
 
     # Save the CT model
-    torch.save(ct_model.state_dict(), f'./ckpts/{f_name}_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.pth')
-    logger.info(f'CT model saved to ./ckpts/{f_name}_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.pth')
+    torch.save(ct_model.state_dict(), f'./ckpts/ct_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.pth')
+    logger.info(f'CT model saved to ./ckpts/ct_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.pth')
 
     # Test the model with LoRA
     logger.info(f'Testing LoRA...')
