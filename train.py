@@ -31,7 +31,7 @@ def extract_features_and_labels(feature_extractor, dataloader):
             features_list.append(feats)
             labels_list.append(y)
 
-    return torch.cat(features_list), torch.cat(labels_list)
+    return torch.cat(features_list).cpu(), torch.cat(labels_list).cpu()
 
 
 def linear_probe(model, train_loader, val_loader):
