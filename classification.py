@@ -151,6 +151,13 @@ def main():
         config=vars(args),
     )
     lora_model = get_lora_cnn(copy.deepcopy(model), r=1, alpha=1).to(device)
+    # Replace the last layer with normal linear layer
+    if 'swin' not in args.model:
+        lora_model.fc = nn.Linear(in_features=lora_model.fc.in_features,
+                                  out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds]).to(device)
+    else:
+        lora_model.head = nn.Linear(in_features=lora_model.head.in_features,
+                                    out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds]).to(device)
     num_params_lora = sum(param.numel() for param in lora_model.parameters() if param.requires_grad)
     logger.info(f'Number of trainable parameters: {num_params_lora}')
     logger.info(f'Starting transfer learning...')
