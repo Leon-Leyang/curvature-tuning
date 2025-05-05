@@ -80,6 +80,8 @@ def main():
 
     fix_seed(args.seed)  # Fix the seed each time
 
+    logger.info(f'Running on {device}')
+
     dataset = f'{args.pretrained_ds}_to_{args.transfer_ds}'
 
     # Freeze the backbone model and replace the last layer
@@ -104,12 +106,12 @@ def main():
         name=identifier,
         config=vars(args),
     )
-    relu_model = copy.deepcopy(model)
-    num_params_base = sum(param.numel() for param in relu_model.parameters() if param.requires_grad)
+    base_model = copy.deepcopy(model)
+    num_params_base = sum(param.numel() for param in base_model.parameters() if param.requires_grad)
     logger.info(f'Number of trainable parameters: {num_params_base}')
     logger.info(f'Starting transfer learning...')
-    relu_model = transfer(relu_model, train_loader, val_loader)
-    _, relu_acc = test_epoch(-1, relu_model, test_loader, criterion, device)
+    base_model = transfer(base_model, train_loader, val_loader)
+    _, relu_acc = test_epoch(-1, base_model, test_loader, criterion, device)
     logger.info(f'Baseline Accuracy: {relu_acc:.2f}%')
     wandb.finish()
 
@@ -134,6 +136,9 @@ def main():
     _, ct_acc = test_epoch(-1, ct_model, test_loader, criterion, device)
     logger.info(f'CT Accuracy: {ct_acc:.2f}%')
     wandb.finish()
+
+    mean_beta, mean_coeff = get_mean_beta_and_coeff(ct_model)
+    logger.info(f'Mean Beta: {mean_beta:.6f}, Mean Coeff: {mean_coeff:.6f}')
 
     # Save the CT model
     os.makedirs('./ckpts', exist_ok=True)
@@ -173,6 +178,9 @@ def main():
         logger.warning(f'LoRA model has fewer trainable parameters than CT model: {num_params_lora} < {num_params_ct}')
     rel_improve_base = (ct_acc - relu_acc) / relu_acc
     rel_improve_lora = (ct_acc - lora_acc) / lora_acc
+    logger.info(f'Baseline Accuracy: {relu_acc:.2f}%')
+    logger.info(f'CT Accuracy: {ct_acc:.2f}%')
+    logger.info(f'LoRA Accuracy: {lora_acc:.2f}%')
     logger.info(f'Relative accuracy improvement over baseline: {rel_improve_base * 100:.2f}%')
     logger.info(f'Relative accuracy improvement over LoRA: {rel_improve_lora * 100:.2f}%')
     mean_beta, mean_coeff = get_mean_beta_and_coeff(ct_model)

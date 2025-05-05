@@ -80,6 +80,8 @@ def main():
 
     fix_seed(args.seed)  # Fix the seed each time
 
+    logger.info(f'Running on {device}')
+
     dataset = f'{args.pretrained_ds}_to_{args.transfer_ds}'
 
     # Freeze the backbone model and replace the last layer
