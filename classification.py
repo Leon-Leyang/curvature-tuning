@@ -72,8 +72,6 @@ def get_args():
 def main():
     args = get_args()
 
-    os.makedirs('./ckpts', exist_ok=True)
-
     f_name = get_file_name(__file__)
     transfer_ds_alias = args.transfer_ds.replace('/', '-')
     log_file_path = set_logger(
@@ -138,6 +136,7 @@ def main():
     wandb.finish()
 
     # Save the CT model
+    os.makedirs('./ckpts', exist_ok=True)
     torch.save(ct_model.state_dict(), f'./ckpts/ct_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.pth')
     logger.info(f'CT model saved to ./ckpts/ct_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.pth')
 
