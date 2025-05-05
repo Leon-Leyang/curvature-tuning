@@ -18,7 +18,7 @@ def main(kwargs, job_dir):
         slurm_ntasks_per_node=1,  # Number of tasks per node
         cpus_per_task=6,          # Number of CPUs per task
         nodes=1,                  # Number of nodes
-        timeout_min=2880,         # Maximum duration in minutes
+        timeout_min=8640,         # Maximum duration in minutes
         slurm_partition="gpu", # Partition name
         slurm_job_name=f"{pretrained_ds}_to_{transfer_ds}_{model}_seed{seed}",  # Job name
         slurm_mail_type="ALL",    # Email settings
