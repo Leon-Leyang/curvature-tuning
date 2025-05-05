@@ -135,7 +135,7 @@ def set_logger(log_dir='./logs', print_level="INFO", logfile_level="DEBUG", name
     logger.add(
         log_file_path,
         level=logfile_level,
-        mode="w"  # Append mode
+        mode="w"  # Overwrite mode
     )
     return log_file_path
 
