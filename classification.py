@@ -14,6 +14,7 @@ import copy
 import argparse
 import wandb
 import os
+import time
 
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 
@@ -98,7 +99,6 @@ def main():
     criterion = nn.CrossEntropyLoss()
 
     # Test the baseline model
-    logger.info('Testing baseline...')
     identifier = f'base_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}'
     wandb.init(
         project='ct',
@@ -106,17 +106,26 @@ def main():
         name=identifier,
         config=vars(args),
     )
+    logger.info('Testing baseline...')
     base_model = copy.deepcopy(model)
     num_params_base = sum(param.numel() for param in base_model.parameters() if param.requires_grad)
     logger.info(f'Number of trainable parameters: {num_params_base}')
     logger.info(f'Starting transfer learning...')
+    start_time = time.perf_counter()
     base_model = transfer(base_model, train_loader, val_loader)
-    _, relu_acc = test_epoch(-1, base_model, test_loader, criterion, device)
-    logger.info(f'Baseline Accuracy: {relu_acc:.2f}%')
+    end_time = time.perf_counter()
+    base_transfer_time = int(end_time - start_time)
+    logger.info(f'Baseline Transfer learning time: {base_transfer_time} seconds')
+    start_time = time.perf_counter()
+    _, base_acc = test_epoch(-1, base_model, test_loader, criterion, device)
+    end_time = time.perf_counter()
+    base_test_time = int(end_time - start_time)
+    logger.info(f'Baseline Test time: {base_test_time} seconds')
+    logger.info(f'Baseline Accuracy: {base_acc:.2f}%')
+    wandb.log({'test_accuracy': base_acc, 'transfer_time': base_transfer_time, 'test_time': base_test_time, 'num_params': num_params_base})
     wandb.finish()
 
     # Test the model with CT
-    logger.info(f'Testing CT...')
     identifier = f'ct_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}'
     wandb.init(
         project='ct',
@@ -124,6 +133,7 @@ def main():
         name=identifier,
         config=vars(args),
     )
+    logger.info(f'Testing CT...')
     dummy_input_shape = (1, 3, 224, 224)
     ct_model = replace_module_per_channel(copy.deepcopy(model), dummy_input_shape, old_module=nn.ReLU,
                                           new_module=CT).to(device)
@@ -132,10 +142,17 @@ def main():
     mean_beta, mean_coeff = get_mean_beta_and_coeff(ct_model)
     logger.info(f'Mean Beta: {mean_beta:.6f}, Mean Coeff: {mean_coeff:.6f}')
     logger.info(f'Starting transfer learning...')
+    start_time = time.perf_counter()
     ct_model = transfer(ct_model, train_loader, val_loader)
+    end_time = time.perf_counter()
+    ct_transfer_time = int(end_time - start_time)
+    logger.info(f'CT Transfer learning time: {ct_transfer_time} seconds')
+    start_time = time.perf_counter()
     _, ct_acc = test_epoch(-1, ct_model, test_loader, criterion, device)
+    end_time = time.perf_counter()
+    ct_test_time = int(end_time - start_time)
+    logger.info(f'CT Test time: {ct_test_time} seconds')
     logger.info(f'CT Accuracy: {ct_acc:.2f}%')
-    wandb.finish()
 
     mean_beta, mean_coeff = get_mean_beta_and_coeff(ct_model)
     logger.info(f'Mean Beta: {mean_beta:.6f}, Mean Coeff: {mean_coeff:.6f}')
@@ -144,17 +161,21 @@ def main():
     os.makedirs('./ckpts', exist_ok=True)
     torch.save(ct_model.state_dict(), f'./ckpts/ct_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.pth')
     logger.info(f'CT model saved to ./ckpts/ct_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.pth')
+    wandb.log({'test_accuracy': ct_acc, 'transfer_time': ct_transfer_time, 'test_time': ct_test_time, 'num_params': num_params_ct})
+    wandb.finish()
 
     # Test the model with LoRA
-    logger.info(f'Testing LoRA...')
-    identifier = f'lora_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}'
+    lora_rank = 1
+    lora_alpha = lora_rank
+    identifier = f'lora_rank{lora_rank}_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}'
     wandb.init(
         project='ct',
         entity='leyang_hu',
         name=identifier,
         config=vars(args),
     )
-    lora_model = get_lora_cnn(copy.deepcopy(model), r=1, alpha=1).to(device)
+    logger.info(f'Testing LoRA...')
+    lora_model = get_lora_cnn(copy.deepcopy(model), r=lora_rank, alpha=lora_alpha).to(device)
     # Replace the last layer with normal linear layer
     if 'swin' not in args.model:
         lora_model.fc = nn.Linear(in_features=lora_model.fc.in_features,
@@ -165,20 +186,34 @@ def main():
     num_params_lora = sum(param.numel() for param in lora_model.parameters() if param.requires_grad)
     logger.info(f'Number of trainable parameters: {num_params_lora}')
     logger.info(f'Starting transfer learning...')
+    start_time = time.perf_counter()
     lora_model = transfer(lora_model, train_loader, val_loader)
+    end_time = time.perf_counter()
+    lora_transfer_time = int(end_time - start_time)
+    logger.info(f'LoRA Transfer learning time: {lora_transfer_time} seconds')
+    start_time = time.perf_counter()
     _, lora_acc = test_epoch(-1, lora_model, test_loader, criterion, device)
+    end_time = time.perf_counter()
+    lora_test_time = int(end_time - start_time)
+    logger.info(f'LoRA Test time: {lora_test_time} seconds')
     logger.info(f'LoRA Accuracy: {lora_acc:.2f}%')
+    wandb.log({'test_accuracy': lora_acc, 'transfer_time': lora_transfer_time, 'test_time': lora_test_time, 'num_params': num_params_lora})
     wandb.finish()
 
     # Log the summary
     logger.info(f'Baseline model trainable parameters: {num_params_base}')
     logger.info(f'CT model trainable parameters: {num_params_ct}')
     logger.info(f'LoRA model trainable parameters: {num_params_lora}')
+    logger.info(f'CT params/LoRA params: {num_params_ct / num_params_lora:.2f}')
     if num_params_lora < num_params_ct:
         logger.warning(f'LoRA model has fewer trainable parameters than CT model: {num_params_lora} < {num_params_ct}')
-    rel_improve_base = (ct_acc - relu_acc) / relu_acc
+    logger.info(f'Baseline Transfer learning time: {base_transfer_time} seconds, Test time: {base_test_time} seconds')
+    logger.info(f'CT Transfer learning time: {ct_transfer_time} seconds, Test time: {ct_test_time} seconds')
+    logger.info(f'LoRA Transfer learning time: {lora_transfer_time} seconds, Test time: {lora_test_time} seconds')
+    logger.info(f'CT time/LoRA time     Transfer: {ct_transfer_time / lora_transfer_time:.2f}, Test: {ct_test_time / lora_test_time:.2f}')
+    rel_improve_base = (ct_acc - base_acc) / base_acc
     rel_improve_lora = (ct_acc - lora_acc) / lora_acc
-    logger.info(f'Baseline Accuracy: {relu_acc:.2f}%')
+    logger.info(f'Baseline Accuracy: {base_acc:.2f}%')
     logger.info(f'CT Accuracy: {ct_acc:.2f}%')
     logger.info(f'LoRA Accuracy: {lora_acc:.2f}%')
     logger.info(f'Relative accuracy improvement over baseline: {rel_improve_base * 100:.2f}%')
@@ -188,9 +223,15 @@ def main():
 
     # Save the results
     os.makedirs('./results', exist_ok=True)
-    save_result_json(f'./results/base_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.json', num_params_base, relu_acc)
-    save_result_json(f'./results/ct_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.json', num_params_ct, ct_acc)
-    save_result_json(f'./results/lora_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.json', num_params_lora, lora_acc)
+    save_result_json(
+        f'./results/base_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.json',
+        num_params_base, base_acc, base_transfer_time, base_test_time)
+    save_result_json(
+        f'./results/ct_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.json',
+        num_params_ct, ct_acc, ct_transfer_time, ct_test_time, beta=mean_beta, coeff=mean_coeff)
+    save_result_json(
+        f'./results/lora_rank{lora_rank}_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.json',
+        num_params_lora, lora_acc, lora_transfer_time, lora_test_time)
     logger.info('Results saved to ./results/')
 
 

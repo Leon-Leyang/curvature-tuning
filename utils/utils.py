@@ -189,11 +189,14 @@ def count_trainable_parameters(model: nn.Module) -> int:
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-def save_result_json(file_path, num_params, acc):
+def save_result_json(file_path, num_params, acc, transfer_time, test_time, **kwargs):
     data = {
         'num_params': num_params,
-        'accuracy': acc
+        'accuracy': acc,
+        'transfer_time': transfer_time,
+        'test_time': test_time
     }
+    data.update(kwargs)
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
     with open(file_path, 'w') as f:
         json.dump(data, f, indent=2)
