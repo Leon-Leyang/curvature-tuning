@@ -65,7 +65,7 @@ def get_args():
     )
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
     parser.add_argument('--pretrained_ds', type=str, default='imagenet', help='Pretrained dataset')
-    parser.add_argument('--transfer_ds', type=str, default='cifar10', help='Transfer dataset')
+    parser.add_argument('--transfer_ds', type=str, default='beans', help='Transfer dataset')
     return parser.parse_args()
 
 
