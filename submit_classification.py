@@ -38,11 +38,19 @@ def main(kwargs, job_dir):
     print(f"Job submitted for model {model} on dataset {pretrained_ds}_to_{transfer_ds} with seed {seed} with job ID {job.job_id}")
 
 
-def job_completed(filepath):
-    if not os.path.exists(filepath):
-        return False
-    with open(filepath, "r") as f:
-        return "Relative accuracy improvement over baseline" in f.read()
+def job_completed(pretrained_ds, transfer_ds, model, seed):
+    transfer_ds_alias = transfer_ds.replace('/', '-')
+    result_path = [
+        f'./results/base_{pretrained_ds}_to_{transfer_ds_alias}_{model}_seed{seed}.json',
+        f'./results/ct_{pretrained_ds}_to_{transfer_ds_alias}_{model}_seed{seed}.json',
+        f'./results/lora_{pretrained_ds}_to_{transfer_ds_alias}_{model}_seed{seed}.json',
+    ]
+
+    # Check if all result files exist
+    for path in result_path:
+        if not os.path.exists(path):
+            return False
+    return True
 
 
 if __name__ == "__main__":
@@ -73,12 +81,12 @@ if __name__ == "__main__":
         "medmnist/pathmnist",
     ]
 
+    pretrained_ds = 'imagenet'
+
     seed_list = [42, 43, 44]
 
     for seed in seed_list:
         for model in model_list:
             for transfer_ds in dataset_list:
-                transfer_ds_alias = transfer_ds.replace('/', '-')
-                filepath = f"./logs/classification_imagenet_to_{transfer_ds_alias}_{model}_seed{seed}.log"
-                if not job_completed(filepath):
-                    main({'model': model, 'pretrained_ds': 'imagenet', 'transfer_ds': transfer_ds, 'seed': seed}, job_dir)
+                if not job_completed(pretrained_ds, transfer_ds, model, seed):
+                    main({'model': model, 'pretrained_ds': pretrained_ds, 'transfer_ds': transfer_ds, 'seed': seed}, job_dir)
