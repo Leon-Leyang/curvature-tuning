@@ -50,6 +50,30 @@ class CT(nn.Module):
                 (1 - self.coeff) * F.softplus(x / (1 - self.beta), threshold=self.threshold) * (1 - self.beta))
 
 
+class SharedCT(nn.Module):
+    """
+    Shared Curvature Tuning activation function.
+    All instances share the same beta and coeff parameters.
+    """
+    def __init__(self, shared_raw_beta, shared_raw_coeff, threshold=20):
+        super().__init__()
+        self.threshold = threshold
+        self._raw_beta = shared_raw_beta
+        self._raw_coeff = shared_raw_coeff
+
+    @property
+    def beta(self):
+        return torch.sigmoid(self._raw_beta)
+
+    @property
+    def coeff(self):
+        return torch.sigmoid(self._raw_coeff)
+
+    def forward(self, x):
+        return (self.coeff * torch.sigmoid(self.beta * x / (1 - self.beta)) * x +
+                (1 - self.coeff) * F.softplus(x / (1 - self.beta), threshold=self.threshold) * (1 - self.beta))
+
+
 class ReplacementMapping:
     def __init__(self, old_module, new_module, **kwargs):
         self.old_module = old_module
@@ -62,7 +86,7 @@ class ReplacementMapping:
         return module
 
 
-def replace_module(model, old_module=nn.ReLU, new_module=CT, **kwargs):
+def replace_module(model, old_module=nn.ReLU, new_module=SharedCT, **kwargs):
     if not isinstance(model, nn.Module):
         raise ValueError("Expected model to be an instance of torch.nn.Module")
 
