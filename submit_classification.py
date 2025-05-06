@@ -44,7 +44,7 @@ def job_completed(pretrained_ds, transfer_ds, model, seed):
     result_path = [
         f'./results/base_{pretrained_ds}_to_{transfer_ds_alias}_{model}_seed{seed}.json',
         f'./results/ct_{pretrained_ds}_to_{transfer_ds_alias}_{model}_seed{seed}.json',
-        f'./results/lora_{pretrained_ds}_to_{transfer_ds_alias}_{model}_seed{seed}.json',
+        f'./results/lora_rank1_{pretrained_ds}_to_{transfer_ds_alias}_{model}_seed{seed}.json',
     ]
 
     # Check if all result files exist
