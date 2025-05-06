@@ -14,6 +14,7 @@ import argparse
 import wandb
 import os
 import time
+import numpy as np
 
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 
@@ -87,7 +88,7 @@ def test_epoch(epoch, model, testloader, criterion, device, beta):
 
     return test_loss, test_accuracy
 
-def transfer(model, train_loader, val_loader):
+def transfer(model, train_loader, val_loader, beta):
     criterion = nn.CrossEntropyLoss()
 
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-3)
@@ -98,8 +99,8 @@ def transfer(model, train_loader, val_loader):
     best_acc = 0.0
 
     for epoch in range(1, 31):
-        train_epoch(epoch, model, train_loader, optimizer, criterion, device, warmup_scheduler)
-        _, val_acc = test_epoch(epoch, model, val_loader, criterion, device)
+        train_epoch(epoch, model, train_loader, optimizer, criterion, device, warmup_scheduler, beta)
+        _, val_acc = test_epoch(epoch, model, val_loader, criterion, device, beta)
         if val_acc > best_acc:
             best_model = copy.deepcopy(model)
             best_acc = val_acc
@@ -150,7 +151,7 @@ def main():
 
     criterion = nn.CrossEntropyLoss()
 
-    beta_range = (0.7, 1 - 1e-6, 0.01)
+    beta_range = np.arange(0.7, 1.0 - 1e-6, 0.01)
 
     identifier = f'search_ct_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}'
     wandb.init(
@@ -160,7 +161,7 @@ def main():
         config=vars(args),
     )
     # Associate the subplots with the same beta
-    for beta in torch.arange(*beta_range):
+    for beta in beta_range:
         wandb.define_metric(f"epoch_beta{beta:.2f}")
         wandb.define_metric(f"train_loss_beta{beta:.2f}", step_metric=f"epoch_beta{beta:.2f}")
         wandb.define_metric(f"train_accuracy_beta{beta:.2f}", step_metric=f"epoch_beta{beta:.2f}")
@@ -184,7 +185,7 @@ def main():
         logger.info(f'Number of trainable parameters: {num_params_ct}')
         logger.info(f'Starting transfer learning...')
         start_time = time.perf_counter()
-        ct_model, val_acc = transfer(ct_model, train_loader, val_loader)
+        ct_model, val_acc = transfer(ct_model, train_loader, val_loader, beta)
         end_time = time.perf_counter()
         ct_transfer_time = int(end_time - start_time)
         logger.info(f'Search CT Transfer learning time: {ct_transfer_time} seconds')
@@ -227,7 +228,7 @@ def main():
     os.makedirs('./results', exist_ok=True)
     save_result_json(
         f'./results/search_ct_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.json',
-        num_params_ct, test_acc, ct_transfer_time, ct_test_time, beta=best_beta, coeff=0.5, best_val_acc=best_val_acc,
+        num_params_ct, test_acc, avg_transfer_time, ct_test_time, beta=best_beta, coeff=0.5, best_val_acc=best_val_acc,
         val_acc_list=val_acc_list)
     logger.info('Results saved to ./results/')
 
