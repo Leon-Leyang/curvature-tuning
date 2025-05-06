@@ -93,7 +93,7 @@ def main():
     else:
         model.head = nn.Linear(in_features=model.head.in_features, out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds]).to(device)
 
-    train_loader, test_loader, val_loader = get_data_loaders(dataset, args.seed)
+    train_loader, test_loader, val_loader = get_data_loaders(dataset, seed=args.seed)
 
     criterion = nn.CrossEntropyLoss()
 
