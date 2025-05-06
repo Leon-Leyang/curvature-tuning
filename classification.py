@@ -8,7 +8,7 @@ from utils.data import get_data_loaders, DATASET_TO_NUM_CLASSES
 from utils.utils import get_pretrained_model, get_file_name, fix_seed, set_logger, save_result_json
 from utils.curvature_tuning import CT, replace_module_per_channel, get_mean_beta_and_coeff
 from utils.lora import get_lora_cnn
-from train import train_epoch, test_epoch, WarmUpLR, linear_probe
+from train import train_epoch, test_epoch, WarmUpLR
 from loguru import logger
 import copy
 import argparse
@@ -112,7 +112,7 @@ def main():
     logger.info(f'Number of trainable parameters: {num_params_base}')
     logger.info(f'Starting transfer learning...')
     start_time = time.perf_counter()
-    base_model = linear_probe(base_model, train_loader, val_loader)
+    base_model = transfer(base_model, train_loader, val_loader)
     end_time = time.perf_counter()
     base_transfer_time = int(end_time - start_time)
     logger.info(f'Baseline Transfer learning time: {base_transfer_time} seconds')
