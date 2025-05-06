@@ -205,7 +205,7 @@ def main():
 
     logger.info('Testing the best model...')
     start_time = time.perf_counter()
-    _, test_acc = test_epoch(-1, best_model, test_loader, criterion, device)
+    _, test_acc = test_epoch(-1, best_model, test_loader, criterion, device, best_beta)
     end_time = time.perf_counter()
     ct_test_time = int(end_time - start_time)
     logger.info(f'Search CT Test time: {ct_test_time} seconds')
