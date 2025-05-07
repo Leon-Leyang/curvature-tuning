@@ -67,7 +67,7 @@ def linear_probe(model, train_loader, val_loader, beta):
     best_classifier = None
     best_acc = 0.0
 
-    for epoch in range(1, 31):
+    for epoch in range(1, 21):
         train_epoch(epoch, classifier, train_loader_new, optimizer, criterion, device, warmup_scheduler, beta)
         _, val_acc = test_epoch(epoch, classifier, val_loader_new, criterion, device, beta)
         if val_acc > best_acc:
@@ -166,7 +166,7 @@ def transfer(model, train_loader, val_loader, beta):
     best_model = None
     best_acc = 0.0
 
-    for epoch in range(1, 31):
+    for epoch in range(1, 21):
         train_epoch(epoch, model, train_loader, optimizer, criterion, device, warmup_scheduler, beta)
         _, val_acc = test_epoch(epoch, model, val_loader, criterion, device, beta)
         if val_acc > best_acc:

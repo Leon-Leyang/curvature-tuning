@@ -45,7 +45,7 @@ def transfer(model, train_loader, val_loader):
     best_model = None
     best_acc = 0.0
 
-    for epoch in range(1, 31):
+    for epoch in range(1, 21):
         train_epoch(epoch, model, train_loader, optimizer, criterion, device, warmup_scheduler)
         _, val_acc = test_epoch(epoch, model, val_loader, criterion, device)
         if val_acc > best_acc:
