@@ -1,7 +1,7 @@
 """
 This file is for counting the number of trainable parameters in a ResNet with or without LoRA.
 """
-from utils.lora import get_lora_cnn
+from utils.lora import get_lora_model
 from utils.utils import count_trainable_parameters, get_pretrained_model, get_file_name, fix_seed, set_logger
 from utils.data import get_data_loaders, DATASET_TO_NUM_CLASSES
 import argparse
@@ -25,7 +25,7 @@ def transfer_with_lora(model_name, pretrained_ds, transfer_ds, rank, alpha, epoc
 
     # Get the LoRA version of the model
     model = get_pretrained_model(pretrained_ds, model_name)
-    model = get_lora_cnn(model, r=rank, alpha=alpha)
+    model = get_lora_model(model, r=rank, alpha=alpha)
     num_classes = DATASET_TO_NUM_CLASSES[transfer_ds]
     model.fc = nn.Linear(in_features=model.fc.in_features, out_features=num_classes)
     model = model.to(device)

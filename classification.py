@@ -7,7 +7,7 @@ from torch import optim
 from utils.data import get_data_loaders, DATASET_TO_NUM_CLASSES
 from utils.utils import get_pretrained_model, get_file_name, fix_seed, set_logger, save_result_json
 from utils.curvature_tuning import CT, replace_module_per_channel, get_mean_beta_and_coeff
-from utils.lora import get_lora_cnn
+from utils.lora import get_lora_model
 from train import train_epoch, test_epoch, WarmUpLR, linear_probe
 from loguru import logger
 import copy
@@ -177,7 +177,7 @@ def main():
         config=vars(args),
     )
     logger.info(f'Testing LoRA...')
-    lora_model = get_lora_cnn(copy.deepcopy(model), r=lora_rank, alpha=lora_alpha).to(device)
+    lora_model = get_lora_model(copy.deepcopy(model), r=lora_rank, alpha=lora_alpha).to(device)
     # Replace the last layer with normal linear layer
     if 'swin' not in args.model:
         lora_model.fc = nn.Linear(in_features=lora_model.fc.in_features,

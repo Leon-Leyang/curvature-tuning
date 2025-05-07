@@ -7,7 +7,7 @@ from torch import nn as nn
 from utils.data import get_data_loaders, DATASET_TO_NUM_CLASSES
 from utils.utils import get_pretrained_model, get_file_name, fix_seed, result_exists, set_logger, plot_metric_vs_beta, count_trainable_parameters
 from utils.curvature_tuning import replace_module, CT
-from utils.lora import get_lora_cnn
+from utils.lora import get_lora_model
 import torch.optim as optim
 from train import train_epoch, test_epoch
 from loguru import logger
@@ -27,7 +27,7 @@ def replace_and_transfer_with_lora(beta, model_name, pretrained_ds, transfer_ds,
 
     # Get the LoRA version of the model
     model = get_pretrained_model(pretrained_ds, model_name)
-    model = get_lora_cnn(model, r=rank, alpha=alpha)
+    model = get_lora_model(model, r=rank, alpha=alpha)
     num_classes = DATASET_TO_NUM_CLASSES[transfer_ds]
     model.fc = nn.Linear(in_features=model.fc.in_features, out_features=num_classes)
     if beta != 1:

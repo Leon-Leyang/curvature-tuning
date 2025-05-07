@@ -137,7 +137,7 @@ class LoRAConv2d(nn.Module):
         return original_out + lora_out
 
 
-def get_lora_cnn(module: nn.Module, r: int = 4, alpha: float = 1.0):
+def get_lora_model(module: nn.Module, r: int = 4, alpha: float = 1.0):
     """
     Recursively replace all Conv2d and Linear modules in `module` with
     LoRA-enabled versions. Freezes original weights and adds LoRA parameters.
@@ -155,6 +155,6 @@ def get_lora_cnn(module: nn.Module, r: int = 4, alpha: float = 1.0):
 
         else:
             # Recursively traverse children
-            get_lora_cnn(child, r=r, alpha=alpha)
+            get_lora_model(child, r=r, alpha=alpha)
 
     return module
