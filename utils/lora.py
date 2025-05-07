@@ -44,7 +44,7 @@ class LoRALinear(nn.Module):
         # LoRA path: B @ A
         # shape of BA = [out_features, in_features]
         # Then F.linear with BA
-        lora_update = F.linear(x, self.alpha * (self.B @ self.A))
+        lora_update = F.linear(x, (self.alpha / self.r) * (self.B @ self.A))
 
         return result + lora_update
 
@@ -121,7 +121,7 @@ class LoRAConv2d(nn.Module):
             self.in_channels,
             k_h,
             k_w
-        ) * self.alpha  # scale by alpha
+        ) * (self.alpha / self.r)  # scale by alpha
 
         # Perform conv2d with the LoRA weight (no extra bias term for LoRA)
         lora_out = F.conv2d(
