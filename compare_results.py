@@ -35,10 +35,7 @@ if __name__ == "__main__":
 
         for transfer_ds in dataset_list:
             # Check for results completeness
-            check_paths = [f'./results/base_{pretrained_ds}_to_{transfer_ds.replace("/", "-")}_{model}_seed{seed}.json',
-                            f'./results/lora_rank1_{pretrained_ds}_to_{transfer_ds.replace("/", "-")}_{model}_seed{seed}.json',
-                            f'./results/ct_{pretrained_ds}_to_{transfer_ds.replace("/", "-")}_{model}_seed{seed}.json',
-                            f'./results/search_ct_rank1_{pretrained_ds}_to_{transfer_ds.replace("/", "-")}_{model}_seed{seed}.json']
+            check_paths = [f'./results/{method}_{pretrained_ds}_to_{transfer_ds.replace("/", "-")}_{model}_seed{seed}.json' for method in method_list]
             if not all(os.path.exists(path) for path in check_paths):
                 print(f'Missing record for {model} on {transfer_ds}.')
                 continue
