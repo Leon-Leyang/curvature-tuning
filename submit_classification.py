@@ -8,7 +8,7 @@ def main(kwargs, job_dir):
     pretrained_ds = kwargs['pretrained_ds']
     transfer_ds = kwargs['transfer_ds']
     seed = kwargs['seed']
-    transfer_val_bs = kwargs['transfer_val_bs']
+    transfer_test_bs = kwargs['transfer_test_bs']
 
     # Set up the executor folder to include the job ID placeholder
     executor = submitit.AutoExecutor(folder=job_dir / "%j")
@@ -32,7 +32,7 @@ def main(kwargs, job_dir):
         "source /oscar/runtime/software/external/miniconda3/23.11.0/etc/profile.d/conda.sh && "
         "conda deactivate && "
         "conda activate spline && "
-        f"python -u classification.py --model {model} --pretrained_ds {pretrained_ds} --transfer_ds {transfer_ds} --seed {seed} --transfer_val_bs {transfer_val_bs}"
+        f"python -u classification.py --model {model} --pretrained_ds {pretrained_ds} --transfer_ds {transfer_ds} --seed {seed} --transfer_test_bs {transfer_test_bs}"
     )
 
     # Submit the job
@@ -92,9 +92,9 @@ if __name__ == "__main__":
             for transfer_ds in dataset_list:
                 if 'swin' in model:
                     pretrained_ds = 'imagenette'
-                    transfer_val_bs = 500
+                    transfer_test_bs = 500
                 else:
                     pretrained_ds = 'imagenet'
-                    transfer_val_bs = 800
+                    transfer_test_bs = 800
                 if not job_completed(pretrained_ds, transfer_ds, model, seed):
-                    main({'model': model, 'pretrained_ds': pretrained_ds, 'transfer_ds': transfer_ds, 'seed': seed, 'transfer_val_bs': transfer_val_bs}, job_dir)
+                    main({'model': model, 'pretrained_ds': pretrained_ds, 'transfer_ds': transfer_ds, 'seed': seed, 'transfer_test_bs': transfer_test_bs}, job_dir)
