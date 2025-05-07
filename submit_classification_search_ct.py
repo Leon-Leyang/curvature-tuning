@@ -62,6 +62,8 @@ if __name__ == "__main__":
         "resnet18",
         "resnet50",
         "resnet152",
+        "swin_t",
+        "swin_s",
     ]
 
     # List of datasets to transfer to
@@ -80,12 +82,14 @@ if __name__ == "__main__":
         "medmnist/pathmnist",
     ]
 
-    pretrained_ds = 'imagenet'
-
     seed_list = [42, 43, 44]
 
     for seed in seed_list:
         for model in model_list:
             for transfer_ds in dataset_list:
+                if 'swin' in model:
+                    pretrained_ds = 'imagenette'
+                else:
+                    pretrained_ds = 'imagenet'
                 if not job_completed(pretrained_ds, transfer_ds, model, seed):
                     main({'model': model, 'pretrained_ds': pretrained_ds, 'transfer_ds': transfer_ds, 'seed': seed}, job_dir)
