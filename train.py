@@ -117,7 +117,7 @@ def extract_features_and_labels(feature_extractor, dataloader):
     return torch.cat(features_list), torch.cat(labels_list)
 
 
-def linear_probe(model, train_loader, val_loader, beta=None):
+def linear_probe(model, train_loader, val_loader, beta=None, new_train_batch_size=32, new_val_batch_size=800):
     """
     Linear probing by extracting features using the frozen backbone (excluding the classifier),
     then training a new linear classifier on those features.
@@ -134,8 +134,8 @@ def linear_probe(model, train_loader, val_loader, beta=None):
     # Create feature datasets
     train_dataset = torch.utils.data.TensorDataset(train_feats, train_labels)
     val_dataset = torch.utils.data.TensorDataset(val_feats, val_labels)
-    train_loader_new = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=6)
-    val_loader_new = torch.utils.data.DataLoader(val_dataset, batch_size=800, shuffle=False, num_workers=6)
+    train_loader_new = torch.utils.data.DataLoader(train_dataset, batch_size=new_train_batch_size, shuffle=True, num_workers=6)
+    val_loader_new = torch.utils.data.DataLoader(val_dataset, batch_size=new_val_batch_size, shuffle=False, num_workers=6)
 
     # Train a linear classifier
     num_features = train_feats.shape[1]

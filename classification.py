@@ -67,6 +67,10 @@ def get_args():
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
     parser.add_argument('--pretrained_ds', type=str, default='imagenet', help='Pretrained dataset')
     parser.add_argument('--transfer_ds', type=str, default='beans', help='Transfer dataset')
+    parser.add_argument('--linear_probe_train_bs', type=int, default=32, help='Batch size for linear probe')
+    parser.add_argument('--linear_probe_test_bs', type=int, default=800, help='Batch size for linear probe test')
+    parser.add_argument('--transfer_train_bs', type=int, default=32, help='Batch size for transfer learning')
+    parser.add_argument('--transfer_test_bs', type=int, default=800, help='Batch size for transfer learning test')
     return parser.parse_args()
 
 
@@ -94,7 +98,7 @@ def main():
     else:
         model.head = nn.Linear(in_features=model.head.in_features, out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds]).to(device)
 
-    train_loader, test_loader, val_loader = get_data_loaders(dataset, seed=args.seed, train_batch_size=32, test_batch_size=800)
+    train_loader, test_loader, val_loader = get_data_loaders(dataset, seed=args.seed, train_batch_size=args.transfer_train_bs, test_batch_size=args.transfer_test_bs)
 
     criterion = nn.CrossEntropyLoss()
 
@@ -112,7 +116,7 @@ def main():
     logger.info(f'Number of trainable parameters: {num_params_base}')
     logger.info(f'Starting transfer learning...')
     start_time = time.perf_counter()
-    base_model, _ = linear_probe(base_model, train_loader, val_loader)
+    base_model, _ = linear_probe(base_model, train_loader, val_loader, new_train_batch_size=args.linear_probe_train_bs, new_val_batch_size=args.linear_probe_test_bs)
     end_time = time.perf_counter()
     base_transfer_time = int(end_time - start_time)
     logger.info(f'Baseline Transfer learning time: {base_transfer_time} seconds')
