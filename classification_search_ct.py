@@ -98,7 +98,7 @@ def main():
         logger.info(f'Starting transfer learning...')
         ct_model, val_acc = linear_probe(ct_model, train_loader, val_loader, beta,
                                          new_train_batch_size=args.linear_probe_train_bs,
-                                         new_test_batch_size=args.linear_probe_test_bs)
+                                         new_val_batch_size=args.linear_probe_test_bs)
         logger.info(f'Best validation accuracy for beta {beta:.2f}: {val_acc:.2f}%')
 
         val_acc_list.append(val_acc)
