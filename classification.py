@@ -131,7 +131,7 @@ def main():
     # Test the model with CT
     identifier = f'ct_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}'
     wandb.init(
-        project='ct',
+        project='ct-new',
         entity='leyang_hu',
         name=identifier,
         config=vars(args),
@@ -171,7 +171,7 @@ def main():
     lora_alpha = lora_rank
     identifier = f'lora_rank{lora_rank}_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}'
     wandb.init(
-        project='ct',
+        project='ct-new',
         entity='leyang_hu',
         name=identifier,
         config=vars(args),
