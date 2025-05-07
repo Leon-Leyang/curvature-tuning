@@ -14,11 +14,12 @@ from utils.curvature_tuning import replace_module
 from loguru import logger
 from utils.data import get_data_loaders
 import argparse
+import copy
 
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 
 
-def train_epoch(epoch, model, trainloader, optimizer, criterion, device, warmup_scheduler):
+def train_epoch(epoch, model, trainloader, optimizer, criterion, device, warmup_scheduler, beta=None):
     """
     Train the model for one epoch.
     """
@@ -51,11 +52,18 @@ def train_epoch(epoch, model, trainloader, optimizer, criterion, device, warmup_
     train_loss = running_loss / len(trainloader)
     train_accuracy = 100. * correct / total
 
-    wandb.log({'epoch': epoch, 'train_loss': train_loss, 'train_accuracy': train_accuracy, 'lr': optimizer.param_groups[0]['lr']})
+    if beta is None:
+        wandb.log({'epoch': epoch, 'train_loss': train_loss, 'train_accuracy': train_accuracy,
+                   'lr': optimizer.param_groups[0]['lr']})
+    else:
+        wandb.log({f'epoch_beta{beta:.2f}': epoch, f'train_loss_beta{beta:.2f}': train_loss,
+                   f'train_accuracy_beta{beta:.2f}': train_accuracy,
+                   f'lr_beta{beta:.2f}': optimizer.param_groups[0]['lr']})
+
     return train_loss
 
 
-def test_epoch(epoch, model, testloader, criterion, device):
+def test_epoch(epoch, model, testloader, criterion, device, beta=None):
     """
     Test the model for one epoch.
     Specify epoch=-1 to use for testing after training.
@@ -81,11 +89,84 @@ def test_epoch(epoch, model, testloader, criterion, device):
         logger.info(f'Epoch {epoch}, Val Loss: {test_loss:.6f}, Val Accuracy: {test_accuracy:.2f}%')
 
         # Log the test loss and accuracy to wandb
-        wandb.log({'epoch': epoch, 'val_loss': test_loss, 'val_accuracy': test_accuracy})
+        if beta is None:
+            wandb.log({'epoch': epoch, 'val_loss': test_loss, 'val_accuracy': test_accuracy})
+        else:
+            wandb.log({f'epoch_beta{beta:.2f}': epoch, f'val_loss_beta{beta:.2f}': test_loss,
+                       f'val_accuracy_beta{beta:.2f}': test_accuracy})
+
     else:
         logger.info(f'Loss: {test_loss:.6f}, Accuracy: {test_accuracy:.2f}%')
 
     return test_loss, test_accuracy
+
+
+def extract_features_and_labels(feature_extractor, dataloader):
+    feature_extractor.eval()
+    features_list, labels_list = [], []
+    with torch.inference_mode():
+        for x, y in dataloader:
+            x = x.to(device)
+            y = y.to(device)
+
+            feats = feature_extractor(x)
+            feats = torch.flatten(feats, 1)
+            features_list.append(feats.cpu())
+            labels_list.append(y.cpu())
+
+    return torch.cat(features_list), torch.cat(labels_list)
+
+
+def linear_probe(model, train_loader, val_loader, beta=None):
+    """
+    Linear probing by extracting features using the frozen backbone (excluding the classifier),
+    then training a new linear classifier on those features.
+    """
+    # Strip the classification head
+    feature_extractor = nn.Sequential(*list(model.children())[:-1])
+
+    feature_extractor = feature_extractor.to(device)
+
+    # Extract train/val features
+    train_feats, train_labels = extract_features_and_labels(feature_extractor, train_loader)
+    val_feats, val_labels = extract_features_and_labels(feature_extractor, val_loader)
+
+    # Create feature datasets
+    train_dataset = torch.utils.data.TensorDataset(train_feats, train_labels)
+    val_dataset = torch.utils.data.TensorDataset(val_feats, val_labels)
+    train_loader_new = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=6)
+    val_loader_new = torch.utils.data.DataLoader(val_dataset, batch_size=800, shuffle=False, num_workers=6)
+
+    # Train a linear classifier
+    num_features = train_feats.shape[1]
+    num_classes = train_labels.max().item() + 1
+    classifier = nn.Linear(num_features, num_classes).to(device)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(classifier.parameters(), lr=1e-3)
+    warmup_scheduler = WarmUpLR(optimizer, len(train_loader_new))
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10, 20], gamma=0.1)
+
+    best_classifier = None
+    best_acc = 0.0
+
+    for epoch in range(1, 21):
+        train_epoch(epoch, classifier, train_loader_new, optimizer, criterion, device, warmup_scheduler, beta)
+        _, val_acc = test_epoch(epoch, classifier, val_loader_new, criterion, device, beta)
+        if val_acc > best_acc:
+            best_classifier = copy.deepcopy(classifier)
+            best_acc = val_acc
+            logger.info(f'New best validation accuracy: {val_acc:.2f} at epoch {epoch}')
+        scheduler.step()
+
+    # Replace the classifier in the original model with the trained one
+    if hasattr(model, 'fc'):
+        model.fc = best_classifier
+    elif hasattr(model, 'head'):
+        model.head = best_classifier
+    else:
+        raise RuntimeError('Unknown model architecture')
+
+    return model, best_acc
 
 
 class WarmUpLR(_LRScheduler):
