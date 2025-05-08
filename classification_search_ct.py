@@ -37,8 +37,14 @@ def get_args():
 def main():
     args = get_args()
 
-    f_name = get_file_name(__file__)
     transfer_ds_alias = args.transfer_ds.replace('/', '-')
+
+    result_path = f'./results/search_ct_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.json'
+    if os.path.exists(result_path):
+        print(f'Results already exist. Exiting...')
+        return
+
+    f_name = get_file_name(__file__)
     log_file_path = set_logger(
         name=f'{f_name}_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}')
     logger.info(f'Log file: {log_file_path}')
@@ -138,7 +144,7 @@ def main():
     # Save the results
     os.makedirs('./results', exist_ok=True)
     save_result_json(
-        f'./results/search_ct_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.json',
+        result_path,
         num_params_ct, test_acc, ct_transfer_time, ct_test_time, beta=best_beta, coeff=0.5, best_val_acc=best_val_acc,
         val_acc_list=val_acc_list)
     logger.info('Results saved to ./results/')

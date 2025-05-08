@@ -77,8 +77,20 @@ def get_args():
 def main():
     args = get_args()
 
-    f_name = get_file_name(__file__)
+    lora_rank = 1
+
     transfer_ds_alias = args.transfer_ds.replace('/', '-')
+
+    result_path = {'baseline': f'./results/base_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.json',
+                   'ct': f'./results/ct_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.json',
+                   'lora': f'./results/lora_rank{lora_rank}_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.json'}
+
+    # Check if all result files exist
+    if all(os.path.exists(path) for path in result_path.values()):
+        print('All result files already exist. Exiting...')
+        return
+
+    f_name = get_file_name(__file__)
     log_file_path = set_logger(
         name=f'{f_name}_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}')
     logger.info(f'Log file: {log_file_path}')
@@ -171,7 +183,6 @@ def main():
     wandb.finish()
 
     # Test the model with LoRA
-    lora_rank = 1
     lora_alpha = lora_rank
     identifier = f'lora_rank{lora_rank}_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}'
     wandb.init(
@@ -232,13 +243,13 @@ def main():
     # Save the results
     os.makedirs('./results', exist_ok=True)
     save_result_json(
-        f'./results/base_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.json',
+        result_path['baseline'],
         num_params_base, base_acc, base_transfer_time, base_test_time)
     save_result_json(
-        f'./results/ct_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.json',
+        result_path['ct'],
         num_params_ct, ct_acc, ct_transfer_time, ct_test_time, beta=mean_beta, coeff=mean_coeff)
     save_result_json(
-        f'./results/lora_rank{lora_rank}_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.json',
+        result_path['lora'],
         num_params_lora, lora_acc, lora_transfer_time, lora_test_time)
     logger.info('Results saved to ./results/')
 
