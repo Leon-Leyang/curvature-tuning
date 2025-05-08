@@ -19,7 +19,7 @@ import time
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 
 
-def transfer(model, train_loader, val_loader):
+def transfer(model, train_loader, val_loader, lr=1e-3):
     criterion = nn.CrossEntropyLoss()
 
     ct_params = []
@@ -37,11 +37,11 @@ def transfer(model, train_loader, val_loader):
 
     optimizer = torch.optim.Adam([
         {'params': ct_params, 'lr': 1e-1},
-        {'params': other_params, 'lr': 1e-3}
+        {'params': other_params, 'lr': lr}
     ])
 
     warmup_scheduler = WarmUpLR(optimizer, len(train_loader))
-    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10, 20], gamma=0.1)
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10], gamma=0.1)
     best_model = None
     best_acc = 0.0
 
@@ -193,7 +193,7 @@ def main():
     logger.info(f'Number of trainable parameters: {num_params_lora}')
     logger.info(f'Starting transfer learning...')
     start_time = time.perf_counter()
-    lora_model = transfer(lora_model, train_loader, val_loader)
+    lora_model = transfer(lora_model, train_loader, val_loader, lr=1e-4)
     end_time = time.perf_counter()
     lora_transfer_time = int(end_time - start_time)
     logger.info(f'LoRA Transfer learning time: {lora_transfer_time} seconds')
