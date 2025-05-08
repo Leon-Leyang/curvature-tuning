@@ -9,7 +9,7 @@ def load_json(file_path):
 
 
 if __name__ == "__main__":
-    model_list = ['resnet18', 'resnet50', 'resnet152']
+    model_list = ['resnet18', 'resnet50', 'resnet152', 'swin_t', 'swin_s']
     dataset_list = [
         "arabic-characters",
         "arabic-digits",
@@ -25,10 +25,13 @@ if __name__ == "__main__":
         "medmnist/pathmnist",
     ]
     method_list = ['base', 'ct', 'lora_rank1', 'search_ct']
-    pretrained_ds = 'imagenet'
     seed = 42
 
     for model in model_list:
+        if 'swin' in model:
+            pretrained_ds = 'imagenette'
+        else:
+            pretrained_ds = 'imagenet'
         print(f'Comparing methods on {model}...')
         result_dict = {}
         valid_datasets = []
