@@ -140,15 +140,19 @@ def linear_probe(model, train_loader, val_loader, beta=None, new_train_batch_siz
         train_feats, train_labels= train_feats.numpy(), train_labels.numpy()
         logistic_regression = LogisticRegression(max_iter=10000)
         logistic_regression.fit(train_feats, train_labels)
+
+        # Copy the shape of the original model's classifier to form a new fc layer
         if hasattr(model, 'fc'):
-            model.fc.weight.data = torch.tensor(logistic_regression.coef_, dtype=torch.float32).to(device)
-            model.fc.bias.data = torch.tensor(logistic_regression.intercept_, dtype=torch.float32).to(device)
+            best_classifier = copy.deepcopy(model.fc)
         elif hasattr(model, 'head'):
-            model.head.weight.data = torch.tensor(logistic_regression.coef_, dtype=torch.float32).to(device)
-            model.head.bias.data = torch.tensor(logistic_regression.intercept_, dtype=torch.float32).to(device)
+            best_classifier = copy.deepcopy(model.head)
         else:
             raise RuntimeError('Unknown model architecture')
-        _, best_acc = test_epoch(-1, model, val_loader_new, criterion, device)
+
+        best_classifier.weight.data = torch.tensor(logistic_regression.coef_, dtype=torch.float32).to(device)
+        best_classifier.bias.data = torch.tensor(logistic_regression.intercept_, dtype=torch.float32).to(device)
+
+        _, best_acc = test_epoch(-1, best_classifier, val_loader_new, criterion, device)
     else:
         # Create feature datasets
         train_dataset = torch.utils.data.TensorDataset(train_feats, train_labels)
@@ -176,13 +180,13 @@ def linear_probe(model, train_loader, val_loader, beta=None, new_train_batch_siz
                 logger.info(f'New best validation accuracy: {val_acc:.2f} at epoch {epoch}')
             scheduler.step()
 
-        # Replace the classifier in the original model with the trained one
-        if hasattr(model, 'fc'):
-            model.fc = best_classifier
-        elif hasattr(model, 'head'):
-            model.head = best_classifier
-        else:
-            raise RuntimeError('Unknown model architecture')
+    # Replace the classifier in the original model with the trained one
+    if hasattr(model, 'fc'):
+        model.fc = best_classifier
+    elif hasattr(model, 'head'):
+        model.head = best_classifier
+    else:
+        raise RuntimeError('Unknown model architecture')
 
     return model, best_acc
 
