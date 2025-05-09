@@ -15,6 +15,7 @@ from loguru import logger
 from utils.data import get_data_loaders
 import argparse
 import copy
+from sklearn.linear_model import LogisticRegression
 
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 
@@ -117,7 +118,7 @@ def extract_features_and_labels(feature_extractor, dataloader):
     return torch.cat(features_list), torch.cat(labels_list)
 
 
-def linear_probe(model, train_loader, val_loader, beta=None, new_train_batch_size=32, new_val_batch_size=800):
+def linear_probe(model, train_loader, val_loader, beta=None, new_train_batch_size=32, new_val_batch_size=800, deterministic=False):
     """
     Linear probing by extracting features using the frozen backbone (excluding the classifier),
     then training a new linear classifier on those features.
@@ -131,40 +132,57 @@ def linear_probe(model, train_loader, val_loader, beta=None, new_train_batch_siz
     train_feats, train_labels = extract_features_and_labels(feature_extractor, train_loader)
     val_feats, val_labels = extract_features_and_labels(feature_extractor, val_loader)
 
-    # Create feature datasets
-    train_dataset = torch.utils.data.TensorDataset(train_feats, train_labels)
-    val_dataset = torch.utils.data.TensorDataset(val_feats, val_labels)
-    train_loader_new = torch.utils.data.DataLoader(train_dataset, batch_size=new_train_batch_size, shuffle=True, num_workers=6)
-    val_loader_new = torch.utils.data.DataLoader(val_dataset, batch_size=new_val_batch_size, shuffle=False, num_workers=6)
-
-    # Train a linear classifier
-    num_features = train_feats.shape[1]
-    num_classes = train_labels.max().item() + 1
-    classifier = nn.Linear(num_features, num_classes).to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(classifier.parameters(), lr=1e-3)
-    warmup_scheduler = WarmUpLR(optimizer, len(train_loader_new))
-    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10, 20], gamma=0.1)
 
-    best_classifier = None
-    best_acc = 0.0
-
-    for epoch in range(1, 21):
-        train_epoch(epoch, classifier, train_loader_new, optimizer, criterion, device, warmup_scheduler, beta)
-        _, val_acc = test_epoch(epoch, classifier, val_loader_new, criterion, device, beta)
-        if val_acc > best_acc:
-            best_classifier = copy.deepcopy(classifier)
-            best_acc = val_acc
-            logger.info(f'New best validation accuracy: {val_acc:.2f} at epoch {epoch}')
-        scheduler.step()
-
-    # Replace the classifier in the original model with the trained one
-    if hasattr(model, 'fc'):
-        model.fc = best_classifier
-    elif hasattr(model, 'head'):
-        model.head = best_classifier
+    if deterministic:
+        val_dataset = torch.utils.data.TensorDataset(val_feats, val_labels)
+        val_loader_new = torch.utils.data.DataLoader(val_dataset, batch_size=new_val_batch_size, shuffle=False, num_workers=6)
+        train_feats, train_labels= train_feats.numpy(), train_labels.numpy()
+        logistic_regression = LogisticRegression(max_iter=10000)
+        logistic_regression.fit(train_feats, train_labels)
+        if hasattr(model, 'fc'):
+            model.fc.weight.data = torch.tensor(logistic_regression.coef_, dtype=torch.float32).to(device)
+            model.fc.bias.data = torch.tensor(logistic_regression.intercept_, dtype=torch.float32).to(device)
+        elif hasattr(model, 'head'):
+            model.head.weight.data = torch.tensor(logistic_regression.coef_, dtype=torch.float32).to(device)
+            model.head.bias.data = torch.tensor(logistic_regression.intercept_, dtype=torch.float32).to(device)
+        else:
+            raise RuntimeError('Unknown model architecture')
+        _, best_acc = test_epoch(-1, model, val_loader_new, criterion, device)
     else:
-        raise RuntimeError('Unknown model architecture')
+        # Create feature datasets
+        train_dataset = torch.utils.data.TensorDataset(train_feats, train_labels)
+        val_dataset = torch.utils.data.TensorDataset(val_feats, val_labels)
+        train_loader_new = torch.utils.data.DataLoader(train_dataset, batch_size=new_train_batch_size, shuffle=True, num_workers=6)
+        val_loader_new = torch.utils.data.DataLoader(val_dataset, batch_size=new_val_batch_size, shuffle=False, num_workers=6)
+
+        # Train a linear classifier
+        num_features = train_feats.shape[1]
+        num_classes = train_labels.max().item() + 1
+        classifier = nn.Linear(num_features, num_classes).to(device)
+        optimizer = optim.Adam(classifier.parameters(), lr=1e-3)
+        warmup_scheduler = WarmUpLR(optimizer, len(train_loader_new))
+        scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10, 20], gamma=0.1)
+
+        best_classifier = None
+        best_acc = 0.0
+
+        for epoch in range(1, 21):
+            train_epoch(epoch, classifier, train_loader_new, optimizer, criterion, device, warmup_scheduler, beta)
+            _, val_acc = test_epoch(epoch, classifier, val_loader_new, criterion, device, beta)
+            if val_acc > best_acc:
+                best_classifier = copy.deepcopy(classifier)
+                best_acc = val_acc
+                logger.info(f'New best validation accuracy: {val_acc:.2f} at epoch {epoch}')
+            scheduler.step()
+
+        # Replace the classifier in the original model with the trained one
+        if hasattr(model, 'fc'):
+            model.fc = best_classifier
+        elif hasattr(model, 'head'):
+            model.head = best_classifier
+        else:
+            raise RuntimeError('Unknown model architecture')
 
     return model, best_acc
 
