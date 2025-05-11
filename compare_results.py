@@ -30,7 +30,7 @@ if __name__ == "__main__":
     for model in model_list:
         pretrained_ds = 'imagenette' if 'swin' in model else 'imagenet'
         print('-' * 20)
-        print(f'\nComparing methods on {model}...')
+        print(f'Comparing methods on {model}...')
         print('-' * 20)
         result_dict = {}
         valid_datasets = []
