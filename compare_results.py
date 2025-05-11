@@ -52,11 +52,12 @@ if __name__ == "__main__":
                     file_path = f'./results/{method}_{pretrained_ds}_to_{transfer_ds.replace("/", "-")}_{model}_seed{seed}.json'
                     data = load_json(file_path)
                     for key, value in data.items():
+                        if key not in ['num_params', 'accuracy']:
+                            continue
                         averaged_data[f"{method}_{key}"] += value / len(seeds)
 
             result = {
                 'num_params_ratio': averaged_data['ct_num_params'] / averaged_data['lora_rank1_num_params'],
-                'transfer_time_ratio': averaged_data['ct_transfer_time'] / averaged_data['lora_rank1_transfer_time'],
                 'rel_improve_ct_to_base': (averaged_data['ct_accuracy'] - averaged_data['base_accuracy']) / averaged_data['base_accuracy'],
                 'rel_improve_ct_to_lora': (averaged_data['ct_accuracy'] - averaged_data['lora_rank1_accuracy']) / averaged_data['lora_rank1_accuracy'],
                 'ct_better_than_base': averaged_data['ct_accuracy'] > averaged_data['base_accuracy'],
