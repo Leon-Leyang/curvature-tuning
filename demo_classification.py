@@ -9,7 +9,7 @@ import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from utils.utils import MLP, get_file_name, fix_seed, set_logger, get_log_file_path
-from utils.curvature_tuning import replace_module, CT
+from utils.curvature_tuning import replace_module, CT, SharedCT
 from loguru import logger
 
 
@@ -154,36 +154,36 @@ def plot_classification_bond(
 
     # Create subplots
     num_cols = len(beta_vals) + 1  # Include one column for the ReLU baseline
-    num_rows = len(activation_configs)
-    fig, axs = plt.subplots(num_rows, num_cols, figsize=(5 * num_cols, 5 * num_rows))
-    if num_rows == 1:
-        axs = np.expand_dims(axs, axis=0)
+    fig, axs = plt.subplots(1, num_cols, figsize=(5 * num_cols, 5))
+    axs = np.expand_dims(axs, axis=0)
     if num_cols == 1:
         axs = np.expand_dims(axs, axis=1)
 
-    for row, (name, coeff) in enumerate(activation_configs):
-        with torch.no_grad():
-            pred = relu_model(grid).cpu().numpy()
-        plot_decision_boundary(
-            axs[row, 0], points, target, xx, yy, pred, None, mesh_dim, colors[0]
-        )
+    with torch.no_grad():
+        pred = relu_model(grid).cpu().numpy()
+    plot_decision_boundary(
+        axs[0, 0], points, target, xx, yy, pred, None, mesh_dim, colors[0]
+    )
 
-        # Plot for each beta
-        for col, beta in enumerate(beta_vals, start=1):
-            new_model = replace_module(copy.deepcopy(relu_model), nn.ReLU, CT, beta=beta, coeff=coeff)
-            with torch.no_grad():
-                pred = new_model(grid).cpu().numpy()
-            plot_decision_boundary(
-                axs[row, col],
-                points,
-                target,
-                xx,
-                yy,
-                pred,
-                None,
-                mesh_dim,
-                colors[col],
-            )
+    # Plot for each beta
+    for col, beta in enumerate(beta_vals, start=1):
+        shared_raw_beta = nn.Parameter(torch.logit(torch.tensor(beta)), requires_grad=False)
+        shared_raw_coeff = nn.Parameter(torch.logit(torch.tensor(0.5)), requires_grad=False)
+        new_model = replace_module(copy.deepcopy(relu_model), old_module=nn.ReLU, new_module=SharedCT,
+                                  shared_raw_beta=shared_raw_beta, shared_raw_coeff=shared_raw_coeff).to(device)
+        with torch.no_grad():
+            pred = new_model(grid).cpu().numpy()
+        plot_decision_boundary(
+            axs[0, col],
+            points,
+            target,
+            xx,
+            yy,
+            pred,
+            None,
+            mesh_dim,
+            colors[col],
+        )
 
     # Adjust layout and save the figure
     plt.tight_layout(pad=2)
