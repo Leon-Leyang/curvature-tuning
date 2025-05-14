@@ -1,6 +1,6 @@
 import json
 import os
-from collections import defaultdict
+import numpy as np
 
 
 def load_json(file_path):
@@ -24,7 +24,7 @@ if __name__ == "__main__":
         "medmnist/octmnist",
         "medmnist/pathmnist",
     ]
-    method_list = ['base', 'ct', 'lora_rank1', 'search_ct']
+    method_list = ['base', 'lora_rank1', 'search_ct', 'ct']
     seeds = [42, 43, 44]
 
     for model in model_list:
@@ -36,7 +36,6 @@ if __name__ == "__main__":
         valid_datasets = []
 
         for transfer_ds in dataset_list:
-            # Check completeness
             complete = True
             for method in method_list:
                 for seed in seeds:
@@ -47,16 +46,24 @@ if __name__ == "__main__":
             if not complete:
                 continue
 
-            # Average metrics over seeds
-            averaged_data = defaultdict(float)
+            method_metrics = {m: {'accuracy': [], 'num_params': []} for m in method_list}
+
             for seed in seeds:
                 for method in method_list:
                     file_path = f'./results/{method}_{pretrained_ds}_to_{transfer_ds.replace("/", "-")}_{model}_seed{seed}.json'
                     data = load_json(file_path)
-                    for key, value in data.items():
-                        if key not in ['num_params', 'accuracy']:
-                            continue
-                        averaged_data[f"{method}_{key}"] += value / len(seeds)
+                    method_metrics[method]['accuracy'].append(data['accuracy'])
+                    method_metrics[method]['num_params'].append(data['num_params'])
+
+            # Compute mean and std
+            averaged_data = {}
+            for method in method_list:
+                accs = method_metrics[method]['accuracy']
+                params = method_metrics[method]['num_params']
+                averaged_data[f"{method}_accuracy"] = np.mean(accs)
+                averaged_data[f"{method}_accuracy_std"] = np.std(accs)
+                averaged_data[f"{method}_num_params"] = np.mean(params)
+                averaged_data[f"{method}_num_params_std"] = np.std(params)
 
             result = {
                 'num_params_ratio': averaged_data['ct_num_params'] / averaged_data['lora_rank1_num_params'],
@@ -72,6 +79,15 @@ if __name__ == "__main__":
 
             result_dict[transfer_ds] = result
             valid_datasets.append(transfer_ds)
+
+            # Print per dataset stats
+            print(f'[{transfer_ds}]')
+            for method in method_list:
+                acc_mean = averaged_data[f'{method}_accuracy']
+                acc_std = averaged_data[f'{method}_accuracy_std']
+                param_mean = averaged_data[f'{method}_num_params']
+                print(f"{method}: acc = {acc_mean:.2f} ± {acc_std:.2f}, params = {param_mean}")
+            print()
 
         if valid_datasets:
             print(f'CT to LoRA num_params ratio: {100 * sum([result_dict[ds]["num_params_ratio"] for ds in valid_datasets]) / len(valid_datasets):.2f}%')
