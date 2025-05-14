@@ -10,7 +10,7 @@ from torch import nn as nn
 from torchvision import transforms as transforms
 from utils.robustbench import benchmark
 from utils.utils import get_pretrained_model, get_file_name, fix_seed, result_exists, set_logger, plot_metric_vs_beta
-from utils.curvature_tuning import replace_module, CT
+from utils.curvature_tuning import replace_module, TrainableCTU
 from loguru import logger
 import copy
 import argparse
@@ -112,7 +112,7 @@ def replace_and_test_robustness(model, threat, beta_vals, dataset, coeff=0.5, se
     for i, beta in enumerate(beta_vals):
         logger.debug(f'Using CT with beta={beta:.2f}')
         state_path = Path(state_path_format_str.format(beta=beta))
-        new_model = replace_module(copy.deepcopy(model), nn.ReLU, CT, beta=beta, coeff=coeff)
+        new_model = replace_module(copy.deepcopy(model), nn.ReLU, TrainableCTU, beta=beta, coeff=coeff)
         _, test_acc = benchmark(
             new_model, dataset=dataset, threat_model=threat, eps=threat_to_eps[threat], device=device,
             batch_size=batch_size, preprocessing=dataset_to_transform[dataset], n_examples=n_examples,

@@ -5,7 +5,7 @@ import torch
 from torch import nn as nn
 from utils.data import get_data_loaders, DATASET_TO_NUM_CLASSES
 from utils.utils import get_pretrained_model, get_file_name, fix_seed, set_logger, save_result_json
-from utils.curvature_tuning import replace_module, SharedCT
+from utils.curvature_tuning import replace_module, CTU
 from train import test_epoch, linear_probe
 from loguru import logger
 import copy
@@ -103,7 +103,7 @@ def main():
         logger.info(f'Testing Swish-only CT with beta: {beta:.2f}')
         shared_raw_beta = nn.Parameter(torch.logit(torch.tensor(beta)), requires_grad=False)
         shared_raw_coeff = nn.Parameter(torch.tensor(torch.inf), requires_grad=False)
-        ct_model = replace_module(copy.deepcopy(model), old_module=nn.ReLU, new_module=SharedCT,
+        ct_model = replace_module(copy.deepcopy(model), old_module=nn.ReLU, new_module=CTU,
                                   shared_raw_beta=shared_raw_beta, shared_raw_coeff=shared_raw_coeff).to(device)
         num_params_ct = sum(param.numel() for param in ct_model.parameters() if param.requires_grad)
         logger.info(f'Number of trainable parameters: {num_params_ct}')
@@ -169,7 +169,7 @@ def main():
         logger.info(f'Testing Softplus-only CT with beta: {beta:.2f}')
         shared_raw_beta = nn.Parameter(torch.logit(torch.tensor(beta)), requires_grad=False)
         shared_raw_coeff = nn.Parameter(torch.tensor(-torch.inf), requires_grad=False)
-        ct_model = replace_module(copy.deepcopy(model), old_module=nn.ReLU, new_module=SharedCT,
+        ct_model = replace_module(copy.deepcopy(model), old_module=nn.ReLU, new_module=CTU,
                                   shared_raw_beta=shared_raw_beta, shared_raw_coeff=shared_raw_coeff).to(device)
         num_params_ct = sum(param.numel() for param in ct_model.parameters() if param.requires_grad)
         logger.info(f'Number of trainable parameters: {num_params_ct}')

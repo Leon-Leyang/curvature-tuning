@@ -1,23 +1,48 @@
 """
-This file implements the Curvature Tuning (CT) activation function.
-A utility function is also provided to replace all instances of a module in a model with a new module (e.g., ReLU with CT).
+This file implements the CTU (Curvature Tuning Unit) for CT and Trainable CTU.
+It also provides utility functions to replace ReLU with CTU in a model and to compute the mean of beta and coeff parameters.
 """
 import torch
 from torch import nn
 import torch.nn.functional as F
 
 
-class CT(nn.Module):
+class CTU(nn.Module):
     """
-    Curvature Tuning (CT) activation function.
-    This activation function is designed to be used in place of ReLU.
-    The computation is defined as:
-    CT(x) = coeff * sigmoid(beta * x / (1 - beta)) * x +
-             (1 - coeff) * softplus(x / (1 - beta)) * (1 - beta)
+    CTU for CT.
+    """
+    def __init__(self, shared_raw_beta, shared_raw_coeff, threshold=20):
+        super().__init__()
+        self.threshold = threshold
+        self._raw_beta = shared_raw_beta
+        self._raw_coeff = shared_raw_coeff
+        self._raw_beta.requires_grad = False
+        self._raw_coeff.requires_grad = False
+
+    @property
+    def beta(self):
+        return torch.sigmoid(self._raw_beta)
+
+    @property
+    def coeff(self):
+        return torch.sigmoid(self._raw_coeff)
+
+    def forward(self, x):
+        beta = torch.sigmoid(self._raw_beta)
+        coeff = torch.sigmoid(self._raw_coeff)
+        one_minus_beta = 1 - beta
+        x_scaled = x / one_minus_beta
+
+        return (coeff * torch.sigmoid(beta * x_scaled) * x +
+                (1 - coeff) * F.softplus(x_scaled, threshold=self.threshold) * one_minus_beta)
+
+
+class TrainableCTU(nn.Module):
+    """
+    CTU for Trainable CT.
     """
     def __init__(self, num_input_dims, out_channels, raw_beta=1.386, raw_coeff=0.0, threshold=20):
         super().__init__()
-
         self.threshold = threshold
 
         # Decide channel dim based on input shape
@@ -55,35 +80,6 @@ class CT(nn.Module):
                 (1 - coeff) * F.softplus(x_scaled, threshold=self.threshold) * one_minus_beta)
 
 
-class SharedCT(nn.Module):
-    """
-    Shared Curvature Tuning activation function.
-    All instances share the same beta and coeff parameters.
-    """
-    def __init__(self, shared_raw_beta, shared_raw_coeff, threshold=20):
-        super().__init__()
-        self.threshold = threshold
-        self._raw_beta = shared_raw_beta
-        self._raw_coeff = shared_raw_coeff
-
-    @property
-    def beta(self):
-        return torch.sigmoid(self._raw_beta)
-
-    @property
-    def coeff(self):
-        return torch.sigmoid(self._raw_coeff)
-
-    def forward(self, x):
-        beta = torch.sigmoid(self._raw_beta)
-        coeff = torch.sigmoid(self._raw_coeff)
-        one_minus_beta = 1 - beta
-        x_scaled = x / one_minus_beta
-
-        return (coeff * torch.sigmoid(beta * x_scaled) * x +
-                (1 - coeff) * F.softplus(x_scaled, threshold=self.threshold) * one_minus_beta)
-
-
 class ReplacementMapping:
     def __init__(self, old_module, new_module, **kwargs):
         self.old_module = old_module
@@ -96,7 +92,10 @@ class ReplacementMapping:
         return module
 
 
-def replace_module(model, old_module=nn.ReLU, new_module=SharedCT, **kwargs):
+def replace_module(model, old_module=nn.ReLU, new_module=CTU, **kwargs):
+    """
+    Replace all instances of old_module in the model with new_module.
+    """
     if not isinstance(model, nn.Module):
         raise ValueError("Expected model to be an instance of torch.nn.Module")
 
@@ -119,19 +118,9 @@ def replace_module(model, old_module=nn.ReLU, new_module=SharedCT, **kwargs):
     return model
 
 
-def replace_module_per_channel(model, input_shape, old_module=nn.ReLU, new_module=CT, **kwargs):
+def replace_module_dynamic(model, input_shape, old_module=nn.ReLU, new_module=TrainableCTU, **kwargs):
     """
-    Safely replace all modules in a model with per-channel new modules.
-
-    For each old module, we record the number of input dimensions and the number of output channels
-    via a forward hook before replacing.
-
-    Args:
-        model (nn.Module): the model to modify in-place.
-        input_shape (tuple): dummy input shape for tracing.
-        old_module (type): module type to replace (default: nn.ReLU).
-        new_module (type): module class to instantiate (must accept num_input_dims and out_channels).
-        **kwargs: additional arguments for the new module constructor.
+    Replace all instances of old_module in the model with new_module that is dynamically created based on the number of output channels.
     """
     device = next(model.parameters(), torch.tensor([])).device
     dummy_input = torch.randn(*input_shape).to(device)
@@ -189,13 +178,13 @@ def replace_module_per_channel(model, input_shape, old_module=nn.ReLU, new_modul
 
 def get_mean_beta_and_coeff(model):
     """
-    Iterate through the model to compute the mean of beta and coeff parameters.
+    Iterate through the model to compute the mean of beta and coeff parameters of TrainableCTU modules.
     """
     beta_vals = []
     coeff_vals = []
 
     for module in model.modules():
-        if isinstance(module, CT):
+        if isinstance(module, TrainableCTU):
             beta = module.beta.detach().flatten()
             coeff = module.coeff.detach().flatten()
             assert 0 <= beta.min() <= beta.max() <= 1

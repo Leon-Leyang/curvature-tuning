@@ -4,7 +4,7 @@ This file plots our activation function for different values of beta.
 import os
 import torch
 import matplotlib.pyplot as plt
-from utils.curvature_tuning import CT
+from utils.curvature_tuning import TrainableCTU
 
 
 # Create a set of x-values over which to evaluate the activation
@@ -19,7 +19,7 @@ colors = [cmap(0), cmap(1), cmap(2)]
 
 for idx, b in enumerate(betas):
     # Instantiate CT with the current beta
-    activation = CT(beta=b)
+    activation = TrainableCTU(beta=b)
 
     # Forward pass: compute the output for all x_vals
     with torch.no_grad():  # no need for gradients when just plotting
