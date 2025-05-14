@@ -34,6 +34,7 @@ if __name__ == "__main__":
         print('-' * 20)
         result_dict = {}
         valid_datasets = []
+        search_ct_beta_values = {}
 
         for transfer_ds in dataset_list:
             complete = True
@@ -47,6 +48,7 @@ if __name__ == "__main__":
                 continue
 
             method_metrics = {m: {'accuracy': [], 'num_params': []} for m in method_list}
+            beta_list = []
 
             for seed in seeds:
                 for method in method_list:
@@ -54,8 +56,9 @@ if __name__ == "__main__":
                     data = load_json(file_path)
                     method_metrics[method]['accuracy'].append(data['accuracy'])
                     method_metrics[method]['num_params'].append(data['num_params'])
+                    if method == 'search_ct' and 'beta' in data:
+                        beta_list.append(data['beta'])
 
-            # Compute mean and std
             averaged_data = {}
             for method in method_list:
                 accs = method_metrics[method]['accuracy']
@@ -64,6 +67,12 @@ if __name__ == "__main__":
                 averaged_data[f"{method}_accuracy_std"] = np.std(accs)
                 averaged_data[f"{method}_num_params"] = np.mean(params)
                 averaged_data[f"{method}_num_params_std"] = np.std(params)
+
+            if beta_list:
+                avg_beta = np.mean(beta_list)
+                search_ct_beta_values[transfer_ds] = avg_beta
+            else:
+                avg_beta = None
 
             result = {
                 'num_params_ratio': averaged_data['ct_num_params'] / averaged_data['lora_rank1_num_params'],
@@ -75,6 +84,7 @@ if __name__ == "__main__":
                 'rel_improve_search_ct_to_lora': (averaged_data['search_ct_accuracy'] - averaged_data['lora_rank1_accuracy']) / averaged_data['lora_rank1_accuracy'],
                 'search_ct_better_than_base': averaged_data['search_ct_accuracy'] > averaged_data['base_accuracy'],
                 'search_ct_better_than_lora': averaged_data['search_ct_accuracy'] > averaged_data['lora_rank1_accuracy'],
+                'avg_beta': avg_beta
             }
 
             result_dict[transfer_ds] = result
@@ -87,8 +97,11 @@ if __name__ == "__main__":
                 acc_std = averaged_data[f'{method}_accuracy_std']
                 param_mean = averaged_data[f'{method}_num_params']
                 print(f"{method}: acc = {acc_mean:.2f} ± {acc_std:.2f}, params = {param_mean}")
+            if avg_beta is not None:
+                print(f"search_ct beta: {avg_beta:.2f}")
             print()
 
+        # Summarize across datasets
         if valid_datasets:
             print(f'CT to LoRA num_params ratio: {100 * sum([result_dict[ds]["num_params_ratio"] for ds in valid_datasets]) / len(valid_datasets):.2f}%')
             print(f'CT better than base: {sum([result_dict[ds]["ct_better_than_base"] for ds in valid_datasets])} / {len(valid_datasets)}')
@@ -99,5 +112,9 @@ if __name__ == "__main__":
             print(f'Search CT to base rel. improvement: {100 * sum([result_dict[ds]["rel_improve_search_ct_to_base"] for ds in valid_datasets]) / len(valid_datasets):.2f}%')
             print(f'Search CT better than LoRA: {sum([result_dict[ds]["search_ct_better_than_lora"] for ds in valid_datasets])} / {len(valid_datasets)}')
             print(f'Search CT to LoRA rel. improvement: {100 * sum([result_dict[ds]["rel_improve_search_ct_to_lora"] for ds in valid_datasets]) / len(valid_datasets):.2f}%')
+
+            # Report average beta over all datasets
+            avg_beta_all = np.mean([v for v in search_ct_beta_values.values() if v is not None])
+            print(f'Average beta for {model}: {avg_beta_all:.2f}')
         else:
             print(f'No complete records for {model}.')
