@@ -176,6 +176,7 @@ def replace_module_dynamic(model, input_shape, old_module=nn.ReLU, new_module=Tr
 
     return model
 
+
 def get_mean_beta_and_coeff(model):
     """
     Iterate through the model to compute the mean of beta and coeff parameters of TrainableCTU modules.
