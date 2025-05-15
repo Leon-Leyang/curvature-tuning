@@ -2,19 +2,11 @@ import torch
 import torch.nn as nn
 import copy
 import os
-from utils.utils import get_pretrained_model
+from utils.utils import get_pretrained_model, set_matplot_font_size
 from utils.data import DATASET_TO_NUM_CLASSES
 from utils.curvature_tuning import replace_module_dynamic, TrainableCTU
 import numpy as np
 import matplotlib.pyplot as plt
-
-plt.rc('font', size=20)          # controls default text sizes
-plt.rc('axes', titlesize=20)     # fontsize of the axes title
-plt.rc('axes', labelsize=20)     # fontsize of the x and y labels
-plt.rc('xtick', labelsize=20)    # fontsize of the tick labels
-plt.rc('ytick', labelsize=20)    # fontsize of the tick labels
-plt.rc('legend', fontsize=20)    # legend fontsize
-plt.rc('figure', titlesize=20)   # fontsize of the figure title
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
@@ -79,6 +71,8 @@ def plot_mean_std_distribution(all_vals, varname, model_name, transfer_ds, pretr
 
 
 if __name__ == "__main__":
+    set_matplot_font_size()
+
     model_list = ['resnet18', 'resnet50', 'resnet152', 'swin_t', 'swin_s']
     dataset_list = [
         "arabic-characters",
