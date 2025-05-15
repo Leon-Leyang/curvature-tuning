@@ -77,8 +77,11 @@ if __name__ == "__main__":
             result = {
                 'num_params_ratio': averaged_data['ct_num_params'] / averaged_data['lora_rank1_num_params'],
                 'rel_improve_ct_to_base': (averaged_data['ct_accuracy'] - averaged_data['base_accuracy']) / averaged_data['base_accuracy'],
+                'rel_improve_ct_to_search_ct': (averaged_data['ct_accuracy'] - averaged_data['search_ct_accuracy']) /
+                                               averaged_data['search_ct_accuracy'],
                 'rel_improve_ct_to_lora': (averaged_data['ct_accuracy'] - averaged_data['lora_rank1_accuracy']) / averaged_data['lora_rank1_accuracy'],
                 'ct_better_than_base': averaged_data['ct_accuracy'] > averaged_data['base_accuracy'],
+                'ct_better_than_search_ct': averaged_data['ct_accuracy'] > averaged_data['search_ct_accuracy'],
                 'ct_better_than_lora': averaged_data['ct_accuracy'] > averaged_data['lora_rank1_accuracy'],
                 'rel_improve_search_ct_to_base': (averaged_data['search_ct_accuracy'] - averaged_data['base_accuracy']) / averaged_data['base_accuracy'],
                 'rel_improve_search_ct_to_lora': (averaged_data['search_ct_accuracy'] - averaged_data['lora_rank1_accuracy']) / averaged_data['lora_rank1_accuracy'],
@@ -106,6 +109,10 @@ if __name__ == "__main__":
             print(f'CT to LoRA num_params ratio: {100 * sum([result_dict[ds]["num_params_ratio"] for ds in valid_datasets]) / len(valid_datasets):.2f}%')
             print(f'CT better than base: {sum([result_dict[ds]["ct_better_than_base"] for ds in valid_datasets])} / {len(valid_datasets)}')
             print(f'CT to base rel. improvement: {100 * sum([result_dict[ds]["rel_improve_ct_to_base"] for ds in valid_datasets]) / len(valid_datasets):.2f}%')
+            print(
+                f'CT better than Search CT: {sum([result_dict[ds]["ct_better_than_search_ct"] for ds in valid_datasets])} / {len(valid_datasets)}')
+            print(
+                f'CT to Search CT rel. improvement: {100 * sum([result_dict[ds]["rel_improve_ct_to_search_ct"] for ds in valid_datasets]) / len(valid_datasets):.2f}%')
             print(f'CT better than LoRA: {sum([result_dict[ds]["ct_better_than_lora"] for ds in valid_datasets])} / {len(valid_datasets)}')
             print(f'CT to LoRA rel. improvement: {100 * sum([result_dict[ds]["rel_improve_ct_to_lora"] for ds in valid_datasets]) / len(valid_datasets):.2f}%')
             print(f'Search CT better than base: {sum([result_dict[ds]["search_ct_better_than_base"] for ds in valid_datasets])} / {len(valid_datasets)}')
