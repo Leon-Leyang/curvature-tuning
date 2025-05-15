@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import copy
 import os
-from utils.utils import get_pretrained_model, set_matplot_font_size
+from utils.utils import get_pretrained_model
 from utils.data import DATASET_TO_NUM_CLASSES
 from utils.curvature_tuning import replace_module_dynamic, TrainableCTU
 import numpy as np

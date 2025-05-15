@@ -107,7 +107,6 @@ def plot_decision_boundary(ax, points, target, xx, yy, pred, title, mesh_dim, co
         linewidths=[5],
     )
 
-    ax.set_title(title, fontsize=20)
     ax.set_xticks([])
     ax.set_yticks([])
 
