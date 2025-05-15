@@ -199,29 +199,3 @@ def save_result_json(file_path, num_params, acc, transfer_time, test_time, **kwa
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
     with open(file_path, 'w') as f:
         json.dump(data, f, indent=2)
-
-
-def set_matplot_font_size():
-    # set matplotlib fontsize
-    plt.rcParams.update({'font.size': 28})  # 30
-    plt.rcParams.update({'axes.titlesize': 30})  # 34
-    plt.rcParams.update({'axes.labelsize': 28})  # 30
-    plt.rcParams.update({'lines.linewidth': 4})  # 8
-    plt.rcParams.update({'lines.markersize': 16})  # 24
-    plt.rcParams.update({'xtick.labelsize': 24})  # 28
-    plt.rcParams.update({'ytick.labelsize': 24})  # 28
-    plt.rcParams.update({'xtick.major.size': 16})  # 20
-    plt.rcParams.update({'xtick.major.width': 4})  # 4
-    plt.rcParams.update({'xtick.minor.size': 10})  # 10
-    plt.rcParams.update({'xtick.minor.width': 2})  # 2
-    plt.rcParams.update({'ytick.major.size': 16})  # 20
-    plt.rcParams.update({'ytick.major.width': 4})  # 4
-    plt.rcParams.update({'ytick.minor.size': 10})  # 10
-    plt.rcParams.update({'ytick.minor.width': 2})  # 2
-    plt.rcParams['axes.grid'] = True
-    plt.rcParams['grid.linewidth'] = 2
-
-    # Disable type3 fonts
-    # plt.rcParams.update({'text.usetex': True})
-    plt.rcParams.update({'pdf.fonttype': 42})
-    plt.rcParams.update({'ps.fonttype': 42})
