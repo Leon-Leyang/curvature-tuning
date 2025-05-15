@@ -203,6 +203,7 @@ def plot_classification_bond(
     # Adjust layout and save the figure
     plt.tight_layout(pad=2)
     os.makedirs('./figures', exist_ok=True)
+    plt.tight_layout()
     plt.savefig(f'./figures/{get_file_name(get_log_file_path())}_classification_width{width}_depth{depth}_beta{init_beta:.2f}.pdf')
     plt.show()
 
