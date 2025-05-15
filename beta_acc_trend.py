@@ -17,9 +17,9 @@ def plot_val_acc_curve(val_acc_list_all_seeds, beta_range, model_name, transfer_
     std_acc = val_acc_array.std(axis=0)
 
     plt.figure(figsize=(10, 7.5))
-    plt.plot(beta_range, mean_acc, label='Mean Accuracy', color='black')
+    plt.plot(beta_range, mean_acc, label='Mean Accuracy', color='blue')
     plt.fill_between(beta_range, mean_acc - std_acc, mean_acc + std_acc,
-                     alpha=0.3, color='gray', label='±1 std')
+                     alpha=0.3, color='blue', label='±1 std')
     plt.xlabel(r"$\beta$")
     plt.ylabel("Validation Accuracy (%)")
     # plt.title(f"Validation Accuracy vs β\n{model_name} on {transfer_ds}")
