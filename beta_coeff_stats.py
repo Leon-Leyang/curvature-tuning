@@ -65,7 +65,7 @@ def plot_mean_std_distribution(all_vals, varname, model_name, transfer_ds, pretr
     # plt.title(f"{varname.capitalize()} Distribution\n{model_name} on {transfer_ds}")
     plt.legend()
     os.makedirs(save_dir, exist_ok=True)
-    save_path = os.path.join(save_dir, f'{varname}_{pretrained_ds}_to_{transfer_ds.replace("/", "-")}_{model_name}.svg')
+    save_path = os.path.join(save_dir, f'{varname}_{pretrained_ds}_to_{transfer_ds.replace("/", "-")}_{model_name}.pdf')
     plt.savefig(save_path)
     plt.close()
 

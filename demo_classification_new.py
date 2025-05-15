@@ -204,11 +204,30 @@ def plot_classification_bond(
     # Adjust layout and save the figure
     plt.tight_layout(pad=2)
     os.makedirs('./figures', exist_ok=True)
-    plt.savefig(f'./figures/{get_file_name(get_log_file_path())}_classification_width{width}_depth{depth}_beta{init_beta:.2f}.svg')
+    plt.savefig(f'./figures/{get_file_name(get_log_file_path())}_classification_width{width}_depth{depth}_beta{init_beta:.2f}.pdf')
     plt.show()
 
 
 if __name__ == "__main__":
+    # set matplotlib fontsize
+    plt.rcParams.update({'font.size': 28})  # 30
+    plt.rcParams.update({'axes.titlesize': 30})  # 34
+    plt.rcParams.update({'axes.labelsize': 28})  # 30
+    plt.rcParams.update({'lines.linewidth': 4})  # 8
+    plt.rcParams.update({'lines.markersize': 16})  # 24
+    plt.rcParams.update({'xtick.labelsize': 24})  # 28
+    plt.rcParams.update({'ytick.labelsize': 24})  # 28
+    plt.rcParams.update({'xtick.major.size': 16})  # 20
+    plt.rcParams.update({'xtick.major.width': 4})  # 4
+    plt.rcParams.update({'xtick.minor.size': 10})  # 10
+    plt.rcParams.update({'xtick.minor.width': 2})  # 2
+    plt.rcParams.update({'ytick.major.size': 16})  # 20
+    plt.rcParams.update({'ytick.major.width': 4})  # 4
+    plt.rcParams.update({'ytick.minor.size': 10})  # 10
+    plt.rcParams.update({'ytick.minor.width': 2})  # 2
+    plt.rcParams['axes.grid'] = True
+    plt.rcParams['grid.linewidth'] = 2
+
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--width", type=int, default=10)
