@@ -26,6 +26,7 @@ def plot_val_acc_curve(val_acc_list_all_seeds, beta_range, model_name, transfer_
     plt.legend()
     os.makedirs(save_dir, exist_ok=True)
     save_path = os.path.join(save_dir, f'val_acc_curve_{pretrained_ds}_to_{transfer_ds.replace("/", "-")}_{model_name}.pdf')
+    plt.tight_layout()
     plt.savefig(save_path)
     plt.close()
 
