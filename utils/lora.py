@@ -120,7 +120,7 @@ class LoRAConv2d(nn.Module):
             self.in_channels,
             k_h,
             k_w
-        ) * (self.alpha / self.r)  # scale by alpha
+        ) * (self.alpha / self.r)
 
         # Perform conv2d with the LoRA weight (no extra bias term for LoRA)
         lora_update = F.conv2d(
