@@ -80,40 +80,31 @@ class TrainableCTU(nn.Module):
                 (1 - coeff) * F.softplus(x_scaled, threshold=self.threshold) * one_minus_beta)
 
 
-class ReplacementMapping:
-    def __init__(self, old_module, new_module, **kwargs):
-        self.old_module = old_module
-        self.new_module = new_module
-        self.kwargs = kwargs
-
-    def __call__(self, module):
-        if isinstance(module, self.old_module):
-            return self.new_module(**self.kwargs)
-        return module
-
-
 def replace_module(model, old_module=nn.ReLU, new_module=CTU, **kwargs):
     """
     Replace all instances of old_module in the model with new_module.
     """
-    if not isinstance(model, nn.Module):
-        raise ValueError("Expected model to be an instance of torch.nn.Module")
-
-    replacement_mapping = ReplacementMapping(old_module, new_module, **kwargs)
-
     device = next(model.parameters(), torch.tensor([])).device  # Handle models with no parameters
 
+    # Replace modules
     for name, module in model.named_modules():
-        if name == "":
-            continue
-        replacement = replacement_mapping(module).to(device)
+        if isinstance(module, old_module):
+            ct = new_module(**kwargs).to(device)
 
-        # Traverse module hierarchy to assign new module
-        module_names = name.split(".")
-        parent = model
-        for name in module_names[:-1]:
-            parent = getattr(parent, name)
-        setattr(parent, module_names[-1], replacement)
+            # Replace module in the model
+            names = name.split(".")
+            parent = model
+            for n in names[:-1]:
+                if n.isdigit():
+                    parent = parent[int(n)]  # for Sequential/ModuleList
+                else:
+                    parent = getattr(parent, n)
+
+            last_name = names[-1]
+            if last_name.isdigit():
+                parent[int(last_name)] = ct  # for Sequential/ModuleList
+            else:
+                setattr(parent, last_name, ct)
 
     return model
 
