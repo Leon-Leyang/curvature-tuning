@@ -97,7 +97,7 @@ class LoRAConv2d(nn.Module):
 
     def forward(self, x):
         # Standard (frozen) convolution
-        original_out = F.conv2d(
+        result = F.conv2d(
             x,
             self.weight,
             bias=self.bias,
@@ -111,7 +111,6 @@ class LoRAConv2d(nn.Module):
         # 1) Flatten conv kernel in the same manner as above
         # 2) Multiply B and A -> shape [out_channels, in_channels * k_h * k_w]
         # 3) Reshape it back to [out_channels, in_channels, k_h, k_w]
-
         BA = self.B @ self.A  # shape [out_channels, fan_in]
 
         # Reshape to conv kernel
@@ -124,7 +123,7 @@ class LoRAConv2d(nn.Module):
         ) * (self.alpha / self.r)  # scale by alpha
 
         # Perform conv2d with the LoRA weight (no extra bias term for LoRA)
-        lora_out = F.conv2d(
+        lora_update = F.conv2d(
             x,
             lora_weight,
             bias=None,
@@ -134,7 +133,7 @@ class LoRAConv2d(nn.Module):
             groups=self.groups
         )
 
-        return original_out + lora_out
+        return result + lora_update
 
 
 def get_lora_model(model: nn.Module, r: int = 4, alpha: float = 1.0):
