@@ -74,7 +74,6 @@ if __name__ == "__main__":
 
                 if avg_base_acc > 0:
                     rel_improve = (avg_ct_acc - avg_base_acc) / avg_base_acc
-                    print(rel_improve)
                     rel_improvements.append(rel_improve)
 
                 base_acc_all.append(avg_base_acc)
