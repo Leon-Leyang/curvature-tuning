@@ -5,6 +5,7 @@ import os
 import torch
 import numpy as np
 from PIL import Image
+from pathlib import Path
 from torch import nn as nn
 from torchvision import transforms as transforms
 from utils.robustbench import benchmark
@@ -120,7 +121,7 @@ def main():
     os.makedirs('./cache', exist_ok=True)
 
     logger.info(f'Testing the baseline')
-    state_path = f"./cache/{args.threat}_{args.dataset}_{args.model}_base_seed{args.seed}.json"
+    state_path = Path(f"./cache/{args.threat}_{args.dataset}_{args.model}_base_seed{args.seed}.json")
     _, base_acc = benchmark(
         model, dataset=args.dataset, threat_model=args.threat, eps=THREAT_TO_EPS[args.threat], device=device,
         batch_size=args.batch_size, preprocessing=transform, n_examples=args.n_examples,
@@ -136,7 +137,7 @@ def main():
 
     for beta in beta_range:
         logger.info(f'Testing CT with beta: {beta:.2f}')
-        state_path = f"./cache/{args.threat}_{args.dataset}_{args.model}_beta{beta:.2f}_seed{args.seed}.json"
+        state_path = Path(f"./cache/{args.threat}_{args.dataset}_{args.model}_beta{beta:.2f}_seed{args.seed}.json")
         shared_raw_beta = nn.Parameter(torch.logit(torch.tensor(beta)), requires_grad=False)
         shared_raw_coeff = nn.Parameter(torch.tensor(0.0), requires_grad=False)
         ct_model = replace_module(copy.deepcopy(model), old_module=nn.ReLU, new_module=CTU,
