@@ -1,5 +1,5 @@
 """
-This file shows the smoothing of the classification model's decision boundary by applying CT with different beta values.
+This file generates the plots for the toy example.
 """
 import os
 import copy

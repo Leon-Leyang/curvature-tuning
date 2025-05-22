@@ -1,5 +1,5 @@
 """
-This file plots our activation function for different values of beta.
+This file plots our CTU for different values of beta.
 """
 import os
 import torch

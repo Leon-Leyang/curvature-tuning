@@ -8,7 +8,7 @@ def main(kwargs, job_dir):
     pretrained_ds = kwargs['pretrained_ds']
     transfer_ds = kwargs['transfer_ds']
     seed = kwargs['seed']
-    linear_probe_test_bs = kwargs['linear_probe_test_bs']
+    transfer_test_bs = kwargs['transfer_test_bs']
 
     # Set up the executor folder to include the job ID placeholder
     executor = submitit.AutoExecutor(folder=job_dir / "%j")
@@ -22,7 +22,7 @@ def main(kwargs, job_dir):
         nodes=1,                  # Number of nodes
         timeout_min=5760,         # Maximum duration in minutes
         slurm_partition="gpu", # Partition name
-        slurm_job_name=f"search_ct_{pretrained_ds}_to_{transfer_ds}_{model}_seed{seed}",  # Job name
+        slurm_job_name=f"gen_train_ct_{pretrained_ds}_to_{transfer_ds}_{model}_seed{seed}",  # Job name
         slurm_mail_type="ALL",    # Email settings
         slurm_mail_user="leyang_hu@brown.edu",  # Email address
     )
@@ -32,7 +32,7 @@ def main(kwargs, job_dir):
         "source /oscar/runtime/software/external/miniconda3/23.11.0/etc/profile.d/conda.sh && "
         "conda deactivate && "
         "conda activate spline && "
-        f"python -u classification_search_ct.py --model {model} --pretrained_ds {pretrained_ds} --transfer_ds {transfer_ds} --seed {seed} --linear_probe_test_bs {linear_probe_test_bs}"
+        f"python -u generalization_trainable_ct.py --model {model} --pretrained_ds {pretrained_ds} --transfer_ds {transfer_ds} --seed {seed} --transfer_test_bs {transfer_test_bs}"
     )
 
     # Submit the job
@@ -43,7 +43,8 @@ def main(kwargs, job_dir):
 def job_completed(pretrained_ds, transfer_ds, model, seed):
     transfer_ds_alias = transfer_ds.replace('/', '-')
     result_path = [
-        f'./results/search_ct_{pretrained_ds}_to_{transfer_ds_alias}_{model}_seed{seed}.json',
+        f'./results/train_ct_{pretrained_ds}_to_{transfer_ds_alias}_{model}_seed{seed}.json',
+        f'./results/lora_rank1_{pretrained_ds}_to_{transfer_ds_alias}_{model}_seed{seed}.json',
     ]
 
     # Check if all result files exist
@@ -90,9 +91,9 @@ if __name__ == "__main__":
             for transfer_ds in dataset_list:
                 if 'swin' in model:
                     pretrained_ds = 'imagenette'
-                    linear_probe_test_bs = 500
+                    transfer_test_bs = 500
                 else:
                     pretrained_ds = 'imagenet'
-                    linear_probe_test_bs = 800
+                    transfer_test_bs = 800
                 if not job_completed(pretrained_ds, transfer_ds, model, seed):
-                    main({'model': model, 'pretrained_ds': pretrained_ds, 'transfer_ds': transfer_ds, 'seed': seed, 'linear_probe_test_bs': linear_probe_test_bs}, job_dir)
+                    main({'model': model, 'pretrained_ds': pretrained_ds, 'transfer_ds': transfer_ds, 'seed': seed, 'transfer_test_bs': transfer_test_bs}, job_dir)

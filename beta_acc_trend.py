@@ -86,7 +86,7 @@ if __name__ == "__main__":
             beta_range = np.arange(0.7, 1.0 + 1e-6, 0.01)
 
             for seed in seeds:
-                file_path = f'./results/combined_search_ct_{pretrained_ds}_to_{transfer_ds.replace("/", "-")}_{model_name}_seed{seed}.json'
+                file_path = f'./results/combined_ct_{pretrained_ds}_to_{transfer_ds.replace("/", "-")}_{model_name}_seed{seed}.json'
                 if not os.path.exists(file_path):
                     print(f"Warning: Missing file {file_path}")
                     continue

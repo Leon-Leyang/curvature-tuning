@@ -136,7 +136,7 @@ if __name__ == "__main__":
                                               new_module=TrainableCTU).to(device)
 
             for seed in seeds:
-                file_path = f'./ckpts/ct_{pretrained_ds}_to_{transfer_ds.replace("/", "-")}_{model_name}_seed{seed}.pth'
+                file_path = f'./ckpts/train_ct_{pretrained_ds}_to_{transfer_ds.replace("/", "-")}_{model_name}_seed{seed}.pth'
 
                 ct_model.load_state_dict(torch.load(file_path, map_location=device, weights_only=True))
 

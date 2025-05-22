@@ -1,5 +1,5 @@
 """
-This script evaluates the generalization improvement achieved by CT across various image classification datasets.
+This script evaluates the generalization improvement achieved by Trainable CT across various image classification datasets.
 """
 import torch
 from torch import nn as nn
@@ -14,7 +14,6 @@ import copy
 import argparse
 import wandb
 import os
-import time
 
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 
@@ -67,8 +66,6 @@ def get_args():
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
     parser.add_argument('--pretrained_ds', type=str, default='imagenet', help='Pretrained dataset')
     parser.add_argument('--transfer_ds', type=str, default='beans', help='Transfer dataset')
-    parser.add_argument('--linear_probe_train_bs', type=int, default=32, help='Batch size for linear probe')
-    parser.add_argument('--linear_probe_test_bs', type=int, default=800, help='Batch size for linear probe test')
     parser.add_argument('--transfer_train_bs', type=int, default=32, help='Batch size for transfer learning')
     parser.add_argument('--transfer_test_bs', type=int, default=800, help='Batch size for transfer learning test')
     return parser.parse_args()
@@ -81,9 +78,10 @@ def main():
 
     transfer_ds_alias = args.transfer_ds.replace('/', '-')
 
-    result_path = {'baseline': f'./results/base_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.json',
-                   'ct': f'./results/ct_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.json',
-                   'lora': f'./results/lora_rank{lora_rank}_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.json'}
+    result_path = {
+                   'train_ct': f'./results/train_ct_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.json',
+                   'lora': f'./results/lora_rank{lora_rank}_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.json'
+    }
 
     # Check if all result files exist
     if all(os.path.exists(path) for path in result_path.values()):
@@ -114,45 +112,14 @@ def main():
 
     criterion = nn.CrossEntropyLoss()
 
-    # Test the baseline model
-    identifier = f'base_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}'
+    # Test the model with Trainable CT
+    identifier = f'train_ct_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}'
     wandb.init(
         project='ct-new',
-        entity='leyang_hu',
         name=identifier,
         config=vars(args),
     )
-    logger.info('Testing baseline...')
-    base_model = copy.deepcopy(model)
-    num_params_base = sum(param.numel() for param in base_model.parameters() if param.requires_grad)
-    logger.info(f'Number of trainable parameters: {num_params_base}')
-    logger.info(f'Starting transfer learning...')
-    start_time = time.perf_counter()
-    base_model, _ = linear_probe(base_model, train_loader, val_loader, new_train_batch_size=args.linear_probe_train_bs, new_val_batch_size=args.linear_probe_test_bs)
-    end_time = time.perf_counter()
-    base_transfer_time = int(end_time - start_time)
-    logger.info(f'Baseline Transfer learning time: {base_transfer_time} seconds')
-    start_time = time.perf_counter()
-    _, base_acc = test_epoch(-1, base_model, test_loader, criterion, device)
-    end_time = time.perf_counter()
-    base_test_time = int(end_time - start_time)
-    logger.info(f'Baseline Test time: {base_test_time} seconds')
-    logger.info(f'Baseline Accuracy: {base_acc:.2f}%')
-    os.makedirs('./ckpts', exist_ok=True)
-    torch.save(base_model.state_dict(), f'./ckpts/base_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.pth')
-    logger.info(f'Baseline model saved to ./ckpts/base_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.pth')
-    wandb.log({'test_accuracy': base_acc, 'transfer_time': base_transfer_time, 'test_time': base_test_time, 'num_params': num_params_base})
-    wandb.finish()
-
-    # Test the model with CT
-    identifier = f'ct_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}'
-    wandb.init(
-        project='ct-new',
-        entity='leyang_hu',
-        name=identifier,
-        config=vars(args),
-    )
-    logger.info(f'Testing CT...')
+    logger.info(f'Testing Trainable CT...')
     dummy_input_shape = (1, 3, 224, 224)
     ct_model = replace_module_dynamic(copy.deepcopy(model), dummy_input_shape, old_module=nn.ReLU,
                                       new_module=TrainableCTU).to(device)
@@ -161,25 +128,17 @@ def main():
     mean_beta, mean_coeff = get_mean_beta_and_coeff(ct_model)
     logger.info(f'Mean Beta: {mean_beta:.6f}, Mean Coeff: {mean_coeff:.6f}')
     logger.info(f'Starting transfer learning...')
-    start_time = time.perf_counter()
     ct_model = transfer(ct_model, train_loader, val_loader)
-    end_time = time.perf_counter()
-    ct_transfer_time = int(end_time - start_time)
-    logger.info(f'CT Transfer learning time: {ct_transfer_time} seconds')
-    start_time = time.perf_counter()
     _, ct_acc = test_epoch(-1, ct_model, test_loader, criterion, device)
-    end_time = time.perf_counter()
-    ct_test_time = int(end_time - start_time)
-    logger.info(f'CT Test time: {ct_test_time} seconds')
-    logger.info(f'CT Accuracy: {ct_acc:.2f}%')
+    logger.info(f'Trainable CT Accuracy: {ct_acc:.2f}%')
 
     mean_beta, mean_coeff = get_mean_beta_and_coeff(ct_model)
     logger.info(f'Mean Beta: {mean_beta:.6f}, Mean Coeff: {mean_coeff:.6f}')
 
     # Save the CT model
-    torch.save(ct_model.state_dict(), f'./ckpts/ct_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.pth')
-    logger.info(f'CT model saved to ./ckpts/ct_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.pth')
-    wandb.log({'test_accuracy': ct_acc, 'transfer_time': ct_transfer_time, 'test_time': ct_test_time, 'num_params': num_params_ct})
+    torch.save(ct_model.state_dict(), f'./ckpts/train_ct_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.pth')
+    logger.info(f'Trainable CT model saved to ./ckpts/train_ct_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.pth')
+    wandb.log({'test_accuracy': ct_acc, 'num_params': num_params_ct})
     wandb.finish()
 
     # Test the model with LoRA
@@ -187,7 +146,6 @@ def main():
     identifier = f'lora_rank{lora_rank}_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}'
     wandb.init(
         project='ct-new',
-        entity='leyang_hu',
         name=identifier,
         config=vars(args),
     )
@@ -203,54 +161,34 @@ def main():
     num_params_lora = sum(param.numel() for param in lora_model.parameters() if param.requires_grad)
     logger.info(f'Number of trainable parameters: {num_params_lora}')
     logger.info(f'Starting transfer learning...')
-    start_time = time.perf_counter()
     lora_model = transfer(lora_model, train_loader, val_loader, lr=1e-4)
-    end_time = time.perf_counter()
-    lora_transfer_time = int(end_time - start_time)
-    logger.info(f'LoRA Transfer learning time: {lora_transfer_time} seconds')
-    start_time = time.perf_counter()
     _, lora_acc = test_epoch(-1, lora_model, test_loader, criterion, device)
-    end_time = time.perf_counter()
-    lora_test_time = int(end_time - start_time)
-    logger.info(f'LoRA Test time: {lora_test_time} seconds')
     logger.info(f'LoRA Accuracy: {lora_acc:.2f}%')
     torch.save(lora_model.state_dict(), f'./ckpts/lora_rank{lora_rank}_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.pth')
     logger.info(f'LoRA model saved to ./ckpts/lora_rank{lora_rank}_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.pth')
-    wandb.log({'test_accuracy': lora_acc, 'transfer_time': lora_transfer_time, 'test_time': lora_test_time, 'num_params': num_params_lora})
+    wandb.log({'test_accuracy': lora_acc, 'num_params': num_params_lora})
     wandb.finish()
 
     # Log the summary
-    logger.info(f'Baseline model trainable parameters: {num_params_base}')
-    logger.info(f'CT model trainable parameters: {num_params_ct}')
+    logger.info(f'Trainable CT model trainable parameters: {num_params_ct}')
     logger.info(f'LoRA model trainable parameters: {num_params_lora}')
-    logger.info(f'CT params/LoRA params: {num_params_ct / num_params_lora:.2f}')
-    if num_params_lora < num_params_ct:
-        logger.warning(f'LoRA model has fewer trainable parameters than CT model: {num_params_lora} < {num_params_ct}')
-    logger.info(f'Baseline Transfer learning time: {base_transfer_time} seconds, Test time: {base_test_time} seconds')
-    logger.info(f'CT Transfer learning time: {ct_transfer_time} seconds, Test time: {ct_test_time} seconds')
-    logger.info(f'LoRA Transfer learning time: {lora_transfer_time} seconds, Test time: {lora_test_time} seconds')
-    logger.info(f'CT time/LoRA time     Transfer: {ct_transfer_time / lora_transfer_time:.2f}, Test: {ct_test_time / lora_test_time:.2f}')
-    rel_improve_base = (ct_acc - base_acc) / base_acc
+    logger.info(f'Trainable CT params/LoRA params: {num_params_ct / num_params_lora:.2f}')
     rel_improve_lora = (ct_acc - lora_acc) / lora_acc
-    logger.info(f'Baseline Accuracy: {base_acc:.2f}%')
-    logger.info(f'CT Accuracy: {ct_acc:.2f}%')
+    logger.info(f'Trainable CT Accuracy: {ct_acc:.2f}%')
     logger.info(f'LoRA Accuracy: {lora_acc:.2f}%')
-    logger.info(f'Relative accuracy improvement over baseline: {rel_improve_base * 100:.2f}%')
     logger.info(f'Relative accuracy improvement over LoRA: {rel_improve_lora * 100:.2f}%')
     mean_beta, mean_coeff = get_mean_beta_and_coeff(ct_model)
     logger.info(f'Mean Beta: {mean_beta:.6f}, Mean Coeff: {mean_coeff:.6f}')
 
     # Save the results
     os.makedirs('./results', exist_ok=True)
+
     save_result_json(
-        result_path['baseline'],
-        num_params_base, base_acc, base_transfer_time, base_test_time)
-    save_result_json(
-        result_path['ct'],
-        num_params_ct, ct_acc, ct_transfer_time, ct_test_time, beta=mean_beta, coeff=mean_coeff)
+        result_path['train_ct'],
+        num_params_ct, ct_acc, beta=mean_beta, coeff=mean_coeff)
     save_result_json(
         result_path['lora'],
-        num_params_lora, lora_acc, lora_transfer_time, lora_test_time)
+        num_params_lora, lora_acc)
     logger.info('Results saved to ./results/')
 
 

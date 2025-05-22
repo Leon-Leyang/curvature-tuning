@@ -51,17 +51,12 @@ def compute_dataset_mean_std(dataset, image_key="image"):
 
 def main(ds_name):
     # Replace with the path to your dataset script and the split name
-    name = ds_name if '/' not in ds_name else ds_name.split('/')[0]
-    dataset_path = f"/Users/leonl/Desktop/smooth-spline/utils/aidatasets/images/{name}.py"
     dataset_split = "train"
     image_key = "image"
 
     # Load the dataset
-    if '/' in ds_name:
-        variant = ds_name.split('/')[-1]
-        dataset = datasets.load_dataset(dataset_path, split=dataset_split, name=variant, trust_remote_code=True)
-    else:
-        dataset = datasets.load_dataset(dataset_path, split=dataset_split, trust_remote_code=True)
+    dataset = datasets.load_dataset(ds_name, split=dataset_split, trust_remote_code=True)
+    # dataset = datasets.load_dataset(dataset_name, split=dataset_split, name=variant, trust_remote_code=True)
 
     # Compute mean and standard deviation
     mean, std = compute_dataset_mean_std(dataset, image_key=image_key)
@@ -72,6 +67,6 @@ def main(ds_name):
 
 # Example usage
 if __name__ == "__main__":
-    ds = ["dsprites"]
+    ds = ["randall-lab/beans"]
     for dataset in ds:
         main(dataset)

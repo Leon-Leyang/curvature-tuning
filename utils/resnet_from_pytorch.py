@@ -3,6 +3,10 @@ from torchvision.models.resnet import Bottleneck, _resnet, ResNet50_Weights, Res
 
 
 class CTBottleneck(Bottleneck):
+    """
+    Trainable CT compatible Bottleneck block for ResNet.
+    Uses separate ReLU activations for each convolutional layer so that Trainable CT can be applied.
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -33,14 +37,14 @@ class CTBottleneck(Bottleneck):
 
         return out
 
-def resnet50_ct(*, weights = None, progress: bool = True, **kwargs):
+def resnet50_from_pytorch(*, weights = None, progress: bool = True, **kwargs):
     weights = ResNet50_Weights.verify(weights)
     return _resnet(CTBottleneck, [3, 4, 6, 3], weights, progress, **kwargs)
 
-def resnet101_ct(*, weights = None, progress: bool = True, **kwargs):
+def resnet101_from_pytorch(*, weights = None, progress: bool = True, **kwargs):
     weights = ResNet101_Weights.verify(weights)
     return _resnet(CTBottleneck, [3, 4, 23, 3], weights, progress, **kwargs)
 
-def resnet152_ct(*, weights = None, progress: bool = True, **kwargs):
+def resnet152_from_pytorch(*, weights = None, progress: bool = True, **kwargs):
     weights = ResNet152_Weights.verify(weights)
     return _resnet(CTBottleneck, [3, 8, 36, 3], weights, progress, **kwargs)
