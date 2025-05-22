@@ -93,8 +93,8 @@ def get_args():
 def main():
     args = get_args()
 
-    result_path = {'baseline': f'./robust_results/base_{args.threat}_{args.dataset}_{args.model}_seed{args.seed}.json',
-                   'ct': f'./robust_results/ct_{args.threat}_{args.dataset}_{args.model}_seed{args.seed}.json'}
+    result_path = {'baseline': f'./robust_results/base_{args.threat}_{args.dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json',
+                   'ct': f'./robust_results/ct_{args.threat}_{args.dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json'}
 
     # Check if all result files exist
     if all(os.path.exists(path) for path in result_path.values()):
@@ -103,7 +103,7 @@ def main():
 
     f_name = get_file_name(__file__)
     log_file_path = set_logger(
-        name=f'{f_name}_{args.threat}_{args.dataset}_{args.model}_seed{args.seed}')
+        name=f'{f_name}_{args.threat}_{args.dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}')
     logger.info(f'Log file: {log_file_path}')
 
     fix_seed(args.seed)  # Fix the seed each time
@@ -121,7 +121,7 @@ def main():
     os.makedirs('./cache', exist_ok=True)
 
     logger.info(f'Testing the baseline')
-    state_path = Path(f"./cache/{args.threat}_{args.dataset}_{args.model}_base_seed{args.seed}.json")
+    state_path = Path(f"./cache/{args.threat}_{args.dataset}_sample{args.n_examples}_{args.model}_base_seed{args.seed}.json")
     _, base_acc = benchmark(
         model, dataset=args.dataset, threat_model=args.threat, eps=THREAT_TO_EPS[args.threat], device=device,
         batch_size=args.batch_size, preprocessing=transform, n_examples=args.n_examples,
@@ -131,13 +131,13 @@ def main():
     logger.info(f'Robust accuracy: {base_acc:.2f}%')
 
     beta_range = np.arange(0.7, 1.0 - 1e-6, 0.01)
-    best_acc = 0.0
+    best_acc = -1
     best_beta = None
     acc_list = []
 
     for beta in beta_range:
         logger.info(f'Testing CT with beta: {beta:.2f}')
-        state_path = Path(f"./cache/{args.threat}_{args.dataset}_{args.model}_beta{beta:.2f}_seed{args.seed}.json")
+        state_path = Path(f"./cache/{args.threat}_{args.dataset}_sample{args.n_examples}_{args.model}_beta{beta:.2f}_seed{args.seed}.json")
         shared_raw_beta = nn.Parameter(torch.logit(torch.tensor(beta)), requires_grad=False)
         shared_raw_coeff = nn.Parameter(torch.tensor(0.0), requires_grad=False)
         ct_model = replace_module(copy.deepcopy(model), old_module=nn.ReLU, new_module=CTU,
