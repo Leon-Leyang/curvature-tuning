@@ -74,7 +74,7 @@ def run_experiment(width=20, depth=2, training_steps=2000, beta_vals=None,
 
     cmap = plt.colormaps["plasma"]
     num_colors = len(beta_vals) + 1
-    color_map = [cmap(0.5 * i / (num_colors - 1)) for i in range(num_colors)]
+    color_map = [cmap(0.4 * i / (num_colors - 1)) for i in range(num_colors)]
 
     domain_bound = np.max(np.abs(X)) * 1.2
     mesh_dim = 4000
