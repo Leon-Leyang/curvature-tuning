@@ -24,7 +24,7 @@ def plot_regression_curve(X, y, x_range, true_curve, prediction, color, beta):
     ax.plot(x_range, prediction, label="Prediction", color=color, linewidth=3)
     ax.set_xticks([])
     ax.set_yticks([])
-    ax.set_title(f"Beta = {beta:.2f}", fontsize=16)
+    ax.set_title(f"Beta = {beta:.3f}", fontsize=16)
     return fig
 
 def run_regression_experiment(width=64, depth=8, training_steps=20000, beta_vals=None,
@@ -69,7 +69,7 @@ def run_regression_experiment(width=64, depth=8, training_steps=20000, beta_vals
     output = base_model(points)
     loss = nn.MSELoss()(output, target)
     losses.append((loss.item(), 1.0))
-    print(f"Beta = 1.00, Loss = {loss.item():.4f}")
+    print(f"Beta = 1.000, Loss = {loss.item():.4f}")
 
     for idx, beta in enumerate(beta_vals, start=1):
         model = copy.deepcopy(base_model)
@@ -89,26 +89,26 @@ def run_regression_experiment(width=64, depth=8, training_steps=20000, beta_vals
         output = model(points)
         loss = nn.MSELoss()(output, target)
         losses.append((loss.item(), beta))
-        print(f"Beta = {beta:.2f}, Loss = {loss.item():.4f}")
+        print(f"Beta = {beta:.3f}, Loss = {loss.item():.4f}")
 
     os.makedirs('./figures', exist_ok=True)
     gif_path = './figures/demo_regression.gif'
-    pause_frames = 10  # 10 x 100ms = 1000ms pause at the end
+    pause_frames = 25
     extended_frames = frames + [frames[-1]] * pause_frames
     extended_frames[0].save(
         gif_path,
         save_all=True,
         append_images=extended_frames[1:],
-        duration=100,
+        duration=40,
         loop=0
     )
 
     best_loss, best_beta = min(losses)
-    print(f"\nBest beta: {best_beta:.2f} with loss {best_loss:.4f}")
+    print(f"\nBest beta: {best_beta:.3f} with loss {best_loss:.4f}")
 
 if __name__ == "__main__":
-    beta_vals = np.arange(0.99, 0.89, -0.01)
-    beta_vals = [round(float(b), 2) for b in beta_vals]
+    beta_vals = np.arange(0.998, 0.898, -0.002)
+    beta_vals = [round(float(b), 3) for b in beta_vals]
 
     f_name = get_file_name(__file__)
     set_logger(name=f'{f_name}_beta_sweep')

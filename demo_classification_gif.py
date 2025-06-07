@@ -134,13 +134,13 @@ def run_experiment(width=20, depth=2, training_steps=2000, beta_vals=None,
     # Create GIF from in-memory frames
     gif_path = './figures/demo_classification.gif'
     os.makedirs('./figures', exist_ok=True)
-    pause_frames = 10  # 10 x 100ms = 1000ms pause at the end
+    pause_frames = 25
     extended_frames = frames + [frames[-1]] * pause_frames
     extended_frames[0].save(
         gif_path,
         save_all=True,
         append_images=extended_frames[1:],
-        duration=100,
+        duration=40,
         loop=0
     )
 
