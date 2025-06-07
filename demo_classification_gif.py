@@ -60,7 +60,7 @@ def plot_decision_boundary(points, target, xx, yy, pred, mesh_dim, color, beta):
 
     ax.set_xticks([])
     ax.set_yticks([])
-    ax.set_title(f"Beta = {beta:.2f}", fontsize=16)
+    ax.set_title(f"Beta = {beta:.2f}", fontsize=30)
     return fig
 
 def run_experiment(width=20, depth=2, training_steps=2000, beta_vals=None,
@@ -148,10 +148,6 @@ def run_experiment(width=20, depth=2, training_steps=2000, beta_vals=None,
     print(f"\nBest beta: {best_beta:.2f} with loss {best_loss:.4f}")
 
 if __name__ == "__main__":
-    # set matplotlib fontsize
-    plt.rcParams.update({'font.size': 28})  # 30
-    plt.rcParams.update({'axes.titlesize': 30})  # 34
-
     beta_vals = np.arange(0.99, 0.49, -0.01)
     beta_vals = [round(float(b), 2) for b in beta_vals]
 

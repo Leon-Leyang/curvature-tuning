@@ -24,7 +24,7 @@ def plot_regression_curve(X, y, x_range, true_curve, prediction, color, beta):
     ax.plot(x_range, prediction, label="Prediction", color=color, linewidth=3)
     ax.set_xticks([])
     ax.set_yticks([])
-    ax.set_title(f"Beta = {beta:.3f}", fontsize=16)
+    ax.set_title(f"Beta = {beta:.3f}", fontsize=30)
     return fig
 
 def run_regression_experiment(width=64, depth=8, training_steps=20000, beta_vals=None,
@@ -107,10 +107,6 @@ def run_regression_experiment(width=64, depth=8, training_steps=20000, beta_vals
     print(f"\nBest beta: {best_beta:.3f} with loss {best_loss:.4f}")
 
 if __name__ == "__main__":
-    # set matplotlib fontsize
-    plt.rcParams.update({'font.size': 28})  # 30
-    plt.rcParams.update({'axes.titlesize': 30})  # 34
-
     beta_vals = np.arange(0.998, 0.898, -0.002)
     beta_vals = [round(float(b), 3) for b in beta_vals]
 
