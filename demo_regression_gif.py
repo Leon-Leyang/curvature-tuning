@@ -37,7 +37,8 @@ def run_regression_experiment(width=64, depth=8, training_steps=20000, beta_vals
     target = torch.from_numpy(y).float().to(device).unsqueeze(-1)
 
     cmap = plt.colormaps["plasma"]
-    color_map = [cmap(i % len(cmap.colors)) for i in range(len(beta_vals) + 1)]
+    num_colors = len(beta_vals) + 1
+    color_map = [cmap(0.5 * i / (num_colors - 1)) for i in range(num_colors)]
 
     x_range = np.linspace(X.min(), X.max(), 1000).reshape(-1, 1)
     x_range_torch = torch.from_numpy(x_range).float().to(device)
