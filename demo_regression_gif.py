@@ -18,7 +18,7 @@ def generate_curve_data(n_points, noise=0.1):
     return X, y
 
 def plot_regression_curve(X, y, x_range, true_curve, prediction, color, beta):
-    fig, ax = plt.subplots(figsize=(6, 4))
+    fig, ax = plt.subplots(figsize=(5, 5))
     ax.scatter(X, y, label="Training Data", color="blue")
     ax.plot(x_range, true_curve, label="True Curve", color="black", linewidth=2.5)
     ax.plot(x_range, prediction, label="Prediction", color=color, linewidth=3)
