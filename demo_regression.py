@@ -98,7 +98,7 @@ def plot_classification(
     # Adjust layout and save the figure
     plt.tight_layout(pad=2)
     os.makedirs('./figures', exist_ok=True)
-    plt.savefig(f'./figures/{get_file_name(get_log_file_path())}_regression.svg')
+    plt.savefig(f'./figures/{get_file_name(get_log_file_path())}.svg')
     plt.show()
 
 
