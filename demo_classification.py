@@ -9,7 +9,7 @@ import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from utils.utils import MLP, get_file_name, fix_seed, set_logger, get_log_file_path
-from utils.curvature_tuning import replace_module, TrainableCTU, CTU
+from utils.curvature_tuning import replace_module, CTU
 from loguru import logger
 
 
@@ -147,11 +147,6 @@ def plot_classification_bond(
         )
         grid = torch.from_numpy(np.stack([xx.flatten(), yy.flatten()], 1)).float().to(device)
 
-    # Row configurations for each activation type
-    activation_configs = [
-        ("CT", c),
-    ]
-
     # Create subplots
     num_cols = len(beta_vals) + 1  # Include one column for the ReLU baseline
     fig, axs = plt.subplots(1, num_cols, figsize=(5 * num_cols, 5))
@@ -188,7 +183,7 @@ def plot_classification_bond(
     # Adjust layout and save the figure
     plt.tight_layout(pad=2)
     os.makedirs('./figures', exist_ok=True)
-    plt.savefig(f'./figures/{get_file_name(get_log_file_path())}_classification.svg')
+    plt.savefig(f'./figures/{get_file_name(get_log_file_path())}.svg')
     plt.show()
 
 
