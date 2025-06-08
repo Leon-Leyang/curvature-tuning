@@ -16,7 +16,6 @@ import numpy as np
 
 def train(model, points, target, training_steps):
     optim = torch.optim.AdamW(model.parameters(), 0.001)
-    scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=training_steps // 4, gamma=0.1)
     # Training
     with tqdm(total=training_steps // 100) as pbar:
         for i in range(training_steps):
@@ -27,7 +26,6 @@ def train(model, points, target, training_steps):
             optim.zero_grad()
             loss.backward()
             optim.step()
-            scheduler.step()
             if i % 100 == 0:
                 pbar.update(1)
                 pbar.set_description(f"Loss {loss.item()}")

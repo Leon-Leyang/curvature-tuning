@@ -56,7 +56,6 @@ def render_frame(points, target, xx, yy, pred, mesh_dim, color, step=None):
 def train_with_frames(model, points, target, training_steps, grid, xx, yy, mesh_dim, color_map):
     frames = []
     optim = torch.optim.AdamW(model.parameters(), 0.001)
-    scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=training_steps // 4, gamma=0.1)
 
     for step in range(training_steps + 1):
         output = model(points)[:, 0]
@@ -64,7 +63,6 @@ def train_with_frames(model, points, target, training_steps, grid, xx, yy, mesh_
         optim.zero_grad()
         loss.backward()
         optim.step()
-        scheduler.step()
 
         if step % 40 == 0 or step == training_steps:
             with torch.no_grad():
@@ -84,14 +82,12 @@ def plot_classification_gif(width=10, depth=1, training_steps=4000, finetune_ste
 
     baseline_model = MLP(2, 1, depth, width, nn.ReLU()).to(device)
     optim = torch.optim.AdamW(baseline_model.parameters(), 0.001)
-    scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=training_steps // 4, gamma=0.1)
     for step in range(training_steps):
         output = baseline_model(points)[:, 0]
         loss = torch.nn.functional.binary_cross_entropy_with_logits(output, target.float())
         optim.zero_grad()
         loss.backward()
         optim.step()
-        scheduler.step()
 
     domain_bound = np.max(np.abs(X)) * 1.2
     mesh_dim = 400
