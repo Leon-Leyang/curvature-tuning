@@ -35,13 +35,16 @@ def generate_circular_data(n_points):
     return X, y
 
 
-def render_frame(points, target, xx, yy, pred, mesh_dim, color):
+def render_frame(points, target, xx, yy, pred, mesh_dim, color, step=None):
     fig, ax = plt.subplots(figsize=(5, 5))
     colors_map = ["olive" if t == 0 else "palevioletred" for t in target.cpu().numpy()]
     ax.scatter(points[:, 0].cpu(), points[:, 1].cpu(), c=colors_map, alpha=0.6, edgecolors="none")
     ax.contour(xx, yy, pred[:, 0].reshape((mesh_dim, mesh_dim)), levels=[0], colors=[color], linewidths=[5])
     ax.set_xticks([])
     ax.set_yticks([])
+    ax.set_aspect('equal')
+    if step is not None:
+        ax.set_title(f"{step}" if isinstance(step, str) else f"Finetune Step = {step}", fontsize=30)
     plt.tight_layout()
     buf = BytesIO()
     fig.savefig(buf, format="png")
@@ -50,12 +53,12 @@ def render_frame(points, target, xx, yy, pred, mesh_dim, color):
     return Image.open(buf)
 
 
-def train_with_frames(model, points, target, training_steps, grid, xx, yy, mesh_dim, color):
+def train_with_frames(model, points, target, training_steps, grid, xx, yy, mesh_dim, color_map):
     frames = []
     optim = torch.optim.AdamW(model.parameters(), 0.001)
     scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=training_steps // 4, gamma=0.1)
 
-    for step in range(training_steps):
+    for step in range(training_steps + 1):
         output = model(points)[:, 0]
         loss = torch.nn.functional.binary_cross_entropy_with_logits(output, target.float())
         optim.zero_grad()
@@ -63,10 +66,11 @@ def train_with_frames(model, points, target, training_steps, grid, xx, yy, mesh_
         optim.step()
         scheduler.step()
 
-        if step % 100 == 0 or step == training_steps - 1:
+        if step % 40 == 0 or step == training_steps:
             with torch.no_grad():
                 pred = model(grid).cpu().numpy()
-            frame = render_frame(points, target, xx, yy, pred, mesh_dim, color)
+            color = color_map[len(frames) + 1]  # +1 because baseline_frame is index 0
+            frame = render_frame(points, target, xx, yy, pred, mesh_dim, color, step=step)
             frames.append(frame)
     return frames
 
@@ -87,7 +91,7 @@ def plot_classification_gif(width=10, depth=1, training_steps=4000, finetune_ste
         optim.zero_grad()
         loss.backward()
         optim.step()
-        scheduler.step()  # pretrain
+        scheduler.step()
 
     domain_bound = np.max(np.abs(X)) * 1.2
     mesh_dim = 400
@@ -99,22 +103,33 @@ def plot_classification_gif(width=10, depth=1, training_steps=4000, finetune_ste
 
     with torch.no_grad():
         pred_base = baseline_model(grid).cpu().numpy()
-    cmap = plt.colormaps["Dark2"]
-    colors = [cmap(2), cmap(1), cmap(0)]
-    baseline_frame = render_frame(points, target, xx, yy, pred_base, mesh_dim, colors[0])
+    cmap = plt.colormaps["plasma"]
+
+    num_frames = finetune_step // 40 + 2  # +1 for baseline, +1 for final frame
+    color_map = [cmap(0.4 * i / (num_frames - 1)) for i in range(num_frames)]
+
+    baseline_frame = render_frame(points, target, xx, yy, pred_base, mesh_dim, color_map[0], step="Finetune Step = 0")
 
     os.makedirs('./figures', exist_ok=True)
     log_name = get_file_name(get_log_file_path())
     baseline_frame.save(f'./figures/{log_name}_base.png')
 
+    frame_duration = 40  # ms per frame
+    pause_time = 1000  # desired pause time in ms
+    num_pause_frames = pause_time // frame_duration
+
     lora_model = get_lora_model(copy.deepcopy(baseline_model), r=1, alpha=1).to(device)
-    lora_frames = [baseline_frame] + train_with_frames(lora_model, points, target, finetune_step, grid, xx, yy, mesh_dim, colors[1])
-    lora_frames[0].save(f'./figures/{log_name}_lora.gif', save_all=True, append_images=lora_frames[1:], duration=100, loop=0)
+    lora_frames = [baseline_frame] + train_with_frames(lora_model, points, target, finetune_step, grid, xx, yy, mesh_dim, color_map)
+    lora_pause_frames = [lora_frames[-1]] * num_pause_frames
+    lora_frames_final = lora_frames + lora_pause_frames
+    lora_frames_final[0].save(f'./figures/{log_name}_lora.gif', save_all=True, append_images=lora_frames_final[1:], duration=frame_duration, loop=0)
 
     ct_model = replace_module_dynamic(copy.deepcopy(baseline_model), (1, 2), old_module=nn.ReLU,
                                       new_module=TrainableCTU, raw_beta=torch.logit(torch.tensor(init_beta)).item()).to(device)
-    ct_frames = [baseline_frame] + train_with_frames(ct_model, points, target, finetune_step, grid, xx, yy, mesh_dim, colors[2])
-    ct_frames[0].save(f'./figures/{log_name}_ct.gif', save_all=True, append_images=ct_frames[1:], duration=100, loop=0)
+    ct_frames = [baseline_frame] + train_with_frames(ct_model, points, target, finetune_step, grid, xx, yy, mesh_dim, color_map)
+    ct_pause_frames = [ct_frames[-1]] * num_pause_frames
+    ct_frames_final = ct_frames + ct_pause_frames
+    ct_frames_final[0].save(f'./figures/{log_name}_ct.gif', save_all=True, append_images=ct_frames_final[1:], duration=frame_duration, loop=0)
 
 
 if __name__ == "__main__":
