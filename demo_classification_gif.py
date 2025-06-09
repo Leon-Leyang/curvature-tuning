@@ -4,7 +4,6 @@ import torch
 import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt
-import imageio
 from io import BytesIO
 from PIL import Image
 from utils.utils import MLP, fix_seed

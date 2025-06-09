@@ -3,14 +3,12 @@ import copy
 import torch
 import torch.nn as nn
 import numpy as np
-from tqdm import tqdm
 import matplotlib.pyplot as plt
-import imageio
 from io import BytesIO
 from PIL import Image
-from utils.utils import MLP, get_file_name, fix_seed, set_logger, get_log_file_path
+from utils.utils import MLP, get_file_name, fix_seed, set_logger
 from utils.curvature_tuning import replace_module, CTU
-from loguru import logger
+
 
 def generate_curve_data(n_points, noise=0.1):
     X = np.linspace(-np.pi / 2, 3 * np.pi / 2, n_points)
