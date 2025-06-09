@@ -10,7 +10,6 @@ from utils.utils import MLP, get_file_name, fix_seed, set_logger, get_log_file_p
 from utils.curvature_tuning import replace_module_dynamic, TrainableCTU
 from utils.lora import get_lora_model
 
-
 def generate_circular_data(n_points):
     n_points_small_circle = int(n_points / 4)
     n_points_large_circle = n_points - n_points_small_circle
@@ -67,11 +66,9 @@ def train_with_frames(model, points, target, training_steps, grid, xx, yy, mesh_
             with torch.no_grad():
                 pred = model(grid).cpu().numpy()
             color = color_map[len(frames) + 1]
-            frame = render_frame(points, target, xx, yy, pred, mesh_dim, color, step=step, method_name=method_name,
-                                 add_title=True)
+            frame = render_frame(points, target, xx, yy, pred, mesh_dim, color, step=step, method_name=method_name, add_title=True)
             frames.append(frame)
     return frames
-
 
 def plot_classification_gif(width=10, depth=1, training_steps=4000, finetune_step=4000, init_beta=0.4):
     device = torch.device(
@@ -105,8 +102,7 @@ def plot_classification_gif(width=10, depth=1, training_steps=4000, finetune_ste
     num_frames = finetune_step // 40 + 2
     color_map = [cmap(0.4 * i / (num_frames - 1)) for i in range(num_frames)]
 
-    baseline_frame = render_frame(points, target, xx, yy, pred_base, mesh_dim, color_map[0], step="Finetune Step = 0",
-                                  method_name="Baseline", add_title=True)
+    baseline_frame = render_frame(points, target, xx, yy, pred_base, mesh_dim, color_map[0], step="Finetune Step = 0", method_name="Baseline", add_title=True)
 
     os.makedirs('./figures', exist_ok=True)
     log_name = get_file_name(get_log_file_path())
@@ -116,12 +112,10 @@ def plot_classification_gif(width=10, depth=1, training_steps=4000, finetune_ste
     num_pause_frames = pause_time // frame_duration
 
     lora_model = get_lora_model(copy.deepcopy(baseline_model), r=1, alpha=1).to(device)
-    lora_frames = train_with_frames(lora_model, points, target, finetune_step, grid, xx, yy, mesh_dim, color_map,
-                                    "LoRA")
+    lora_frames = train_with_frames(lora_model, points, target, finetune_step, grid, xx, yy, mesh_dim, color_map, "LoRA")
 
     ct_model = replace_module_dynamic(copy.deepcopy(baseline_model), (1, 2), old_module=nn.ReLU,
-                                      new_module=TrainableCTU, raw_beta=torch.logit(torch.tensor(init_beta)).item()).to(
-        device)
+                                      new_module=TrainableCTU, raw_beta=torch.logit(torch.tensor(init_beta)).item()).to(device)
     ct_frames = train_with_frames(ct_model, points, target, finetune_step, grid, xx, yy, mesh_dim, color_map, "CT")
 
     combined_frames = []
@@ -138,9 +132,7 @@ def plot_classification_gif(width=10, depth=1, training_steps=4000, finetune_ste
         combined_frames.append(combined)
 
     combined_frames += [combined_frames[-1]] * num_pause_frames
-    combined_frames[0].save(f'./figures/{log_name}_combined.gif', save_all=True, append_images=combined_frames[1:],
-                            duration=frame_duration, loop=0)
-
+    combined_frames[0].save(f'./figures/{log_name}_combined.gif', save_all=True, append_images=combined_frames[1:], duration=frame_duration, loop=0)
 
 if __name__ == "__main__":
     import argparse
