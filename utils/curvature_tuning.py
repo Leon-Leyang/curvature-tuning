@@ -30,7 +30,7 @@ class CTU(nn.Module):
     def forward(self, x):
         beta = torch.sigmoid(self._raw_beta)
         coeff = torch.sigmoid(self._raw_coeff)
-        one_minus_beta = 1 - beta
+        one_minus_beta = 1 - beta + 1e-6
         x_scaled = x / one_minus_beta
 
         return (coeff * torch.sigmoid(beta * x_scaled) * x +
@@ -73,7 +73,7 @@ class TrainableCTU(nn.Module):
     def forward(self, x):
         beta = torch.sigmoid(self._raw_beta)
         coeff = torch.sigmoid(self._raw_coeff)
-        one_minus_beta = 1 - beta
+        one_minus_beta = 1 - beta + 1e-6
         x_scaled = x / one_minus_beta
 
         return (coeff * torch.sigmoid(beta * x_scaled) * x +
