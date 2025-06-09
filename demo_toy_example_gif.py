@@ -3,7 +3,6 @@ import copy
 import torch
 import torch.nn as nn
 import numpy as np
-from tqdm import tqdm
 import matplotlib.pyplot as plt
 from io import BytesIO
 from PIL import Image
@@ -11,7 +10,6 @@ import imageio
 from utils.utils import MLP, get_file_name, fix_seed, set_logger, get_log_file_path
 from utils.curvature_tuning import replace_module_dynamic, TrainableCTU
 from utils.lora import get_lora_model
-from loguru import logger
 
 
 def generate_circular_data(n_points):
