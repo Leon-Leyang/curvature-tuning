@@ -1,45 +1,57 @@
-"""
-This file plots our CTU for different values of beta.
-"""
-import os
 import torch
 import matplotlib.pyplot as plt
+from matplotlib.cm import magma
+from matplotlib.colors import BoundaryNorm, ListedColormap
 from utils.curvature_tuning import CTU
+import numpy as np
 
+# Setup
+betas = torch.arange(0, 1.01, 0.1)
+x = torch.linspace(-3, 3, 500)
+coeffs = [1.0, 0.0, 0.5]
+titles = ["Smoothing the Region Assignment", "Smoothing the Max", "Combined"]
 
-# Create a set of x-values over which to evaluate the activation
-x_vals = torch.linspace(-0.6, 0.6, steps=200)
+# Reversed truncated colormap: color = 0.9 - 0.9 * beta
+base_cmap = magma
+truncated_colors = [base_cmap(0.9 - 0.9 * beta.item()) for beta in betas]
+truncated_cmap = ListedColormap(truncated_colors)
+boundaries = np.linspace(-0.05, 1.05, len(betas) + 1)
+norm = BoundaryNorm(boundaries, truncated_cmap.N)
 
-# Plot for several beta values
-plt.figure(figsize=(7, 5))
-betas = [0.5, 0.9]
+# Create figure and subplots with square plots
+fig, axes = plt.subplots(1, 3, figsize=(15, 5), sharey=True)  # Adjust figure size to enforce square subplots
 
-cmap = plt.colormaps["Dark2"]
-colors = [cmap(0), cmap(1), cmap(2)]
+for ax, coeff, title in zip(axes, coeffs, titles):
+    for beta in betas:
+        raw_beta = torch.tensor(float('-inf') if beta == 0 else (float('inf') if beta == 1 else torch.logit(torch.tensor(beta))))
+        raw_coeff = torch.tensor(float('-inf') if coeff == 0 else (float('inf') if coeff == 1 else torch.logit(torch.tensor(coeff))))
+        activation = CTU(shared_raw_beta=raw_beta, shared_raw_coeff=raw_coeff)
+        y = activation(x)
+        color = base_cmap(0.9 - 0.9 * beta.item())
+        ax.plot(x, y, color=color, linewidth=1)
 
-for idx, b in enumerate(betas):
-    # Instantiate CT with the current beta
-    raw_beta = torch.logit(torch.tensor(b))
-    raw_coeff = torch.logit(torch.tensor(0.5))
-    activation = CTU(shared_raw_beta=raw_beta, shared_raw_coeff=raw_coeff)
+    ax.set_title(title, fontsize=18)
+    ax.set_aspect('equal')  # Enforce 1:1 aspect ratio strictly
+    ax.set_box_aspect(1)   # Set box aspect to force square subplot
+    ax.set_xlim(-3, 3)      # Explicitly set x range from -3 to 3
+    ax.set_xticks(np.arange(-3, 4, 1))  # Set x ticks with interval 1
+    ax.grid(True)
+    ax.tick_params(axis='both', labelsize=18)  # Set x and y tick label size
 
-    # Forward pass: compute the output for all x_vals
-    with torch.no_grad():  # no need for gradients when just plotting
-        y_vals = activation(x_vals)
+# Adjust layout to fit colorbar and equalize side margins
+plt.subplots_adjust(left=0.04, right=0.9)
 
-    plt.plot(x_vals.numpy(), y_vals.numpy(), color=colors[idx], label=r"$\beta$" + f"={b:.1f}", linewidth=5, alpha=0.6)
+# Add vertical segmented colorbar
+cbar_ax = fig.add_axes([0.92, 0.15, 0.02, 0.7])
+cb = plt.colorbar(
+    plt.cm.ScalarMappable(cmap=truncated_cmap, norm=norm),
+    cax=cbar_ax,
+    ticks=betas,
+    boundaries=boundaries,
+    spacing='uniform'
+)
+cb.set_label(r'$\beta$ values', fontsize=18)
+cb.ax.tick_params(labelsize=18)
 
-# Also plot ReLU for comparison
-relu = torch.nn.ReLU()
-with torch.no_grad():
-    y_relu = relu(x_vals)
-plt.plot(x_vals.numpy(), y_relu.numpy(), color=colors[len(betas)], label=r"$\beta$" + f"=1.0 (ReLU)", linewidth=5, alpha=0.6)
-
-fontsize = 20
-plt.legend(fontsize=fontsize)
-plt.xticks([-0.6, -0.3, 0, 0.3, 0.6], fontsize=fontsize)
-plt.yticks([0, 0.15, 0.3, 0.45, 0.6], fontsize=fontsize)
-plt.grid(True)
-os.makedirs('./figures', exist_ok=True)
-plt.savefig("./figures/demo_act.svg", bbox_inches="tight")
+plt.savefig("./figures/activation_functions.pdf")
 plt.show()
