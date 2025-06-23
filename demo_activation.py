@@ -4,6 +4,7 @@ from matplotlib.cm import magma
 from matplotlib.colors import BoundaryNorm, ListedColormap
 from utils.curvature_tuning import CTU
 import numpy as np
+import os
 
 # Setup
 betas = torch.arange(0, 1.01, 0.1)
@@ -52,6 +53,6 @@ cb = plt.colorbar(
 )
 cb.set_label(r'$\beta$ values', fontsize=18)
 cb.ax.tick_params(labelsize=18)
-
+os.makedirs("./figures", exist_ok=True)
 plt.savefig("./figures/activation_functions.pdf")
 plt.show()
