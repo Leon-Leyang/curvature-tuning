@@ -103,10 +103,12 @@ def main():
     model = get_pretrained_model(args.pretrained_ds, args.model)
     for param in model.parameters():
         param.requires_grad = False
-    if 'swin' not in args.model:
-        model.fc = nn.Linear(in_features=model.fc.in_features, out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds]).to(device)
-    else:
+    if 'swin' in args.model:
         model.head = nn.Linear(in_features=model.head.in_features, out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds]).to(device)
+    elif 'vgg' in args.model:
+        model.classifier[-1] = nn.Linear(in_features=model.classifier[-1].in_features, out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds]).to(device)
+    else:
+        model.fc = nn.Linear(in_features=model.fc.in_features, out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds]).to(device)
 
     train_loader, test_loader, val_loader = get_data_loaders(dataset, seed=args.seed, train_batch_size=args.transfer_train_bs, test_batch_size=args.transfer_test_bs)
 
@@ -152,12 +154,12 @@ def main():
     logger.info(f'Testing LoRA...')
     lora_model = get_lora_model(copy.deepcopy(model), r=lora_rank, alpha=lora_alpha).to(device)
     # Replace the last layer with normal linear layer
-    if 'swin' not in args.model:
-        lora_model.fc = nn.Linear(in_features=lora_model.fc.in_features,
-                                  out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds]).to(device)
+    if 'swin' in args.model:
+        lora_model.head = nn.Linear(in_features=lora_model.head.in_features, out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds]).to(device)
+    elif 'vgg' in args.model:
+        lora_model.classifier[-1] = nn.Linear(in_features=lora_model.classifier[-1].in_features, out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds]).to(device)
     else:
-        lora_model.head = nn.Linear(in_features=lora_model.head.in_features,
-                                    out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds]).to(device)
+        lora_model.fc = nn.Linear(in_features=lora_model.fc.in_features, out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds]).to(device)
     num_params_lora = sum(param.numel() for param in lora_model.parameters() if param.requires_grad)
     logger.info(f'Number of trainable parameters: {num_params_lora}')
     logger.info(f'Starting transfer learning...')

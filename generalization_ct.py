@@ -63,10 +63,12 @@ def main():
     model = get_pretrained_model(args.pretrained_ds, args.model)
     for param in model.parameters():
         param.requires_grad = False
-    if 'swin' not in args.model:
-        model.fc = nn.Linear(in_features=model.fc.in_features, out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds]).to(device)
-    else:
+    if 'swin' in args.model:
         model.head = nn.Linear(in_features=model.head.in_features, out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds]).to(device)
+    elif 'vgg' in args.model:
+        model.classifier[-1] = nn.Linear(in_features=model.classifier[-1].in_features, out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds]).to(device)
+    else:
+        model.fc = nn.Linear(in_features=model.fc.in_features, out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds]).to(device)
 
     train_loader, test_loader, val_loader = get_data_loaders(dataset, seed=args.seed, train_batch_size=args.linear_probe_train_bs,
                                                               test_batch_size=args.linear_probe_test_bs)

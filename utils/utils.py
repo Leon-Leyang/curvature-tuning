@@ -4,7 +4,7 @@ This file is for utility functions used across the project.
 import os
 import sys
 import torchvision
-from torchvision.models import swin_t, swin_s
+from torchvision.models import swin_t, swin_s, vgg11_bn
 from utils.resnet_from_pytorch import resnet50_from_pytorch, resnet101_from_pytorch, resnet152_from_pytorch
 from utils.model import *
 import numpy as np
@@ -61,7 +61,8 @@ def get_pretrained_model(pretrained_ds='cifar100', model_name='resnet18'):
         'resnet101': resnet101_from_pytorch,
         'resnet152': resnet152_from_pytorch,
         'swin_t': swin_t,
-        'swin_s': swin_s
+        'swin_s': swin_s,
+        'vgg11': vgg11_bn
     }
 
     ckpt_folder = './ckpts'
