@@ -126,9 +126,13 @@ def linear_probe(model, train_loader, val_loader, beta=None, new_train_batch_siz
     # Strip the classification head
     children = list(model.children())
 
-    if isinstance(children[-1], nn.Sequential):     # Handle models like VGG with a classifier that's a Sequential module
-        last_block = list(children[-1].children())[:-1]  # Remove last layer in classifier
-        feature_extractor = nn.Sequential(*children[:-1], *last_block)
+    if isinstance(children[-1], nn.Sequential):     # Handle VGG
+        feature_extractor = nn.Sequential(
+            model.features,
+            model.avgpool,
+            nn.Flatten(),
+            *list(model.classifier.children())[:-1]
+        )
     else:
         feature_extractor = nn.Sequential(*children[:-1])
 
