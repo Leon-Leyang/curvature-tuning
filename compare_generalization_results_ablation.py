@@ -9,7 +9,7 @@ def load_json(file_path):
 
 
 if __name__ == "__main__":
-    model_list = ['resnet18', 'resnet50', 'resnet152']
+    model_list = ['resnet18', 'resnet50']
     dataset_list = [
         "arabic-characters",
         "arabic-digits",
