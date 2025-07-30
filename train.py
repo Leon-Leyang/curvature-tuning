@@ -124,7 +124,13 @@ def linear_probe(model, train_loader, val_loader, beta=None, new_train_batch_siz
     then training a new linear classifier on those features.
     """
     # Strip the classification head
-    feature_extractor = nn.Sequential(*list(model.children())[:-1])
+    children = list(model.children())
+
+    if isinstance(children[-1], nn.Sequential):     # Handle models like VGG with a classifier that's a Sequential module
+        last_block = list(children[-1].children())[:-1]  # Remove last layer in classifier
+        feature_extractor = nn.Sequential(*children[:-1], *last_block)
+    else:
+        feature_extractor = nn.Sequential(*children[:-1])
 
     feature_extractor = feature_extractor.to(device)
 
