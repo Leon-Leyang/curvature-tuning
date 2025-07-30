@@ -185,6 +185,8 @@ def linear_probe(model, train_loader, val_loader, beta=None, new_train_batch_siz
         model.fc = best_classifier
     elif hasattr(model, 'head'):
         model.head = best_classifier
+    elif hasattr(model, 'classifier'):
+        model.classifier[-1] = best_classifier
     else:
         raise RuntimeError('Unknown model architecture')
 
