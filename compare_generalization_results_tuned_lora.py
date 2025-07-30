@@ -35,6 +35,15 @@ if __name__ == "__main__":
         result_dict = {}
         valid_datasets = []
 
+        # For accumulating overall stats
+        overall_stats = {
+            method: {
+                'accuracies': [],
+                'alpha_rank_ratios': []
+            }
+            for method in method_list
+        }
+
         for transfer_ds in dataset_list:
             complete = True
             for method in method_list:
@@ -67,6 +76,10 @@ if __name__ == "__main__":
                 averaged_data[f"{method}_best_alpha_rank_ratio"] = np.mean(best_alpha_rank_ratio)
                 averaged_data[f"{method}_best_alpha_rank_ratio_std"] = np.std(best_alpha_rank_ratio)
 
+                # Accumulate for overall stats
+                overall_stats[method]['accuracies'].append(averaged_data[f"{method}_accuracy"])
+                overall_stats[method]['alpha_rank_ratios'].append(averaged_data[f"{method}_best_alpha_rank_ratio"])
+
             valid_datasets.append(transfer_ds)
 
             # Print per dataset stats
@@ -76,5 +89,16 @@ if __name__ == "__main__":
                 acc_std = averaged_data[f'{method}_accuracy_std']
                 param_mean = averaged_data[f'{method}_num_params']
                 best_alpha_rank_ratio_mean = averaged_data[f'{method}_best_alpha_rank_ratio']
-                print(f"{method}: acc = {acc_mean:.2f} ± {acc_std:.2f}, params = {param_mean}, best alpha rank ratio {best_alpha_rank_ratio_mean}")
+                print(f"{method}: acc = {acc_mean:.2f} ± {acc_std:.2f}, params = {param_mean}, best alpha rank ratio {best_alpha_rank_ratio_mean:.2f}")
             print()
+
+        # Print overall average across datasets
+        print("====== Overall Averages ======")
+        for method in method_list:
+            accs = overall_stats[method]['accuracies']
+            alphas = overall_stats[method]['alpha_rank_ratios']
+            if accs:
+                print(f"{method}:")
+                print(f"  Accuracy: {np.mean(accs):.2f} ± {np.std(accs):.2f}")
+                print(f"  Best alpha rank ratio: {np.mean(alphas):.2f} ± {np.std(alphas):.2f}")
+        print()
