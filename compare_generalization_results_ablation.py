@@ -39,7 +39,8 @@ if __name__ == "__main__":
             complete = True
             for method in method_list:
                 for seed in seeds:
-                    file_path = f'./results/{method}_{pretrained_ds}_to_{transfer_ds.replace("/", "-")}_{model}_seed{seed}.json'
+                    prefix = 'combined_search_ct' if method == 'ct' else method
+                    file_path = f'./results/{prefix}_{pretrained_ds}_to_{transfer_ds.replace("/", "-")}_{model}_seed{seed}.json'
                     if not os.path.exists(file_path):
                         print(f'Missing: {file_path}')
                         complete = False
@@ -52,7 +53,8 @@ if __name__ == "__main__":
 
             for seed in seeds:
                 for method in method_list:
-                    file_path = f'./results/{method}_{pretrained_ds}_to_{transfer_ds.replace("/", "-")}_{model}_seed{seed}.json'
+                    prefix = 'combined_search_ct' if method == 'ct' else method
+                    file_path = f'./results/{prefix}_{pretrained_ds}_to_{transfer_ds.replace("/", "-")}_{model}_seed{seed}.json'
                     data = load_json(file_path)
                     method_metrics[method]['accuracy'].append(data['accuracy'])
                     method_metrics[method]['num_params'].append(data['num_params'])
