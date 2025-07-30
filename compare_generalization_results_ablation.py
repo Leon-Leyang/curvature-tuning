@@ -34,7 +34,6 @@ if __name__ == "__main__":
         print('-' * 20)
         result_dict = {}
         valid_datasets = []
-        ct_beta_values = {}
 
         for transfer_ds in dataset_list:
             complete = True
@@ -47,8 +46,9 @@ if __name__ == "__main__":
             if not complete:
                 continue
 
-            method_metrics = {m: {'accuracy': [], 'num_params': []} for m in method_list}
-            beta_list = []
+            method_metrics = {
+                m: {'accuracy': [], 'num_params': [], 'beta': []} for m in method_list
+            }
 
             for seed in seeds:
                 for method in method_list:
@@ -56,86 +56,72 @@ if __name__ == "__main__":
                     data = load_json(file_path)
                     method_metrics[method]['accuracy'].append(data['accuracy'])
                     method_metrics[method]['num_params'].append(data['num_params'])
-                    if method == 'ct' and 'beta' in data:
-                        beta_list.append(data['beta'])
+                    if 'beta' in data:
+                        method_metrics[method]['beta'].append(data['beta'])
 
             averaged_data = {}
             for method in method_list:
                 accs = method_metrics[method]['accuracy']
-                params = method_metrics[method]['num_params']
                 averaged_data[f"{method}_accuracy"] = np.mean(accs)
                 averaged_data[f"{method}_accuracy_std"] = np.std(accs)
-                averaged_data[f"{method}_num_params"] = np.mean(params)
-                averaged_data[f"{method}_num_params_std"] = np.std(params)
 
-            if beta_list:
-                avg_beta = np.mean(beta_list)
-                ct_beta_values[transfer_ds] = avg_beta
-            else:
-                avg_beta = None
-
+            ct_acc = averaged_data['ct_accuracy']
             result = {
-                'num_params_ratio': averaged_data['train_ct_num_params'] / averaged_data['lora_rank1_num_params'],
-                'rel_improve_train_ct_to_base': (averaged_data['train_ct_accuracy'] - averaged_data['base_accuracy']) /
-                                                averaged_data['base_accuracy'],
-                'rel_improve_train_ct_to_ct': (averaged_data['train_ct_accuracy'] - averaged_data['ct_accuracy']) /
-                                              averaged_data['ct_accuracy'],
-                'rel_improve_train_ct_to_lora': (averaged_data['train_ct_accuracy'] - averaged_data[
-                    'lora_rank1_accuracy']) / averaged_data['lora_rank1_accuracy'],
-                'train_ct_better_than_base': averaged_data['train_ct_accuracy'] > averaged_data['base_accuracy'],
-                'train_ct_better_than_ct': averaged_data['train_ct_accuracy'] > averaged_data['ct_accuracy'],
-                'train_ct_better_than_lora': averaged_data['train_ct_accuracy'] > averaged_data['lora_rank1_accuracy'],
-                'rel_improve_ct_to_base': (averaged_data['ct_accuracy'] - averaged_data['base_accuracy']) /
-                                          averaged_data['base_accuracy'],
-                'rel_improve_ct_to_lora': (averaged_data['ct_accuracy'] - averaged_data['lora_rank1_accuracy']) /
-                                          averaged_data['lora_rank1_accuracy'],
-                'ct_better_than_base': averaged_data['ct_accuracy'] > averaged_data['base_accuracy'],
-                'ct_better_than_lora': averaged_data['ct_accuracy'] > averaged_data['lora_rank1_accuracy'],
-                'avg_beta': avg_beta
+                'ct_accuracy': ct_acc
             }
+
+            for method in method_list:
+                betas = method_metrics[method]['beta']
+                if betas:
+                    result[f'{method}_avg_beta'] = np.mean(betas)
+                result[f'{method}_avg_accuracy'] = averaged_data[f"{method}_accuracy"]
+
+                if method == 'ct':
+                    continue
+
+                result[method] = {
+                    'rel_improve': (averaged_data[f"{method}_accuracy"] - ct_acc) / ct_acc,
+                    'better_than_ct': averaged_data[f"{method}_accuracy"] > ct_acc
+                }
 
             result_dict[transfer_ds] = result
             valid_datasets.append(transfer_ds)
 
-            # Print per dataset stats
             print(f'[{transfer_ds}]')
             for method in method_list:
-                acc_mean = averaged_data[f'{method}_accuracy']
-                acc_std = averaged_data[f'{method}_accuracy_std']
-                param_mean = averaged_data[f'{method}_num_params']
-                print(f"{method}: acc = {acc_mean:.2f} ± {acc_std:.2f}, params = {param_mean}")
-            if avg_beta is not None:
-                print(f"ct beta: {avg_beta:.2f}")
+                acc_mean = averaged_data[f"{method}_accuracy"]
+                acc_std = averaged_data[f"{method}_accuracy_std"]
+                print(f"{method}: acc = {acc_mean:.2f} ± {acc_std:.2f}")
+                if f'{method}_avg_beta' in result:
+                    print(f"{method} beta: {result[f'{method}_avg_beta']:.2f}")
             print()
 
-        # Summarize across datasets
         if valid_datasets:
-            print(
-                f'Train CT to LoRA num_params ratio: {100 * sum([result_dict[ds]["num_params_ratio"] for ds in valid_datasets]) / len(valid_datasets):.2f}%')
-            print(
-                f'Train CT better than base: {sum([result_dict[ds]["train_ct_better_than_base"] for ds in valid_datasets])} / {len(valid_datasets)}')
-            print(
-                f'Train CT to base rel. improvement: {100 * sum([result_dict[ds]["rel_improve_train_ct_to_base"] for ds in valid_datasets]) / len(valid_datasets):.2f}%')
-            print(
-                f'Train CT better than CT: {sum([result_dict[ds]["train_ct_better_than_ct"] for ds in valid_datasets])} / {len(valid_datasets)}')
-            print(
-                f'Train CT to CT rel. improvement: {100 * sum([result_dict[ds]["rel_improve_train_ct_to_ct"] for ds in valid_datasets]) / len(valid_datasets):.2f}%')
-            print(
-                f'Train CT better than LoRA: {sum([result_dict[ds]["train_ct_better_than_lora"] for ds in valid_datasets])} / {len(valid_datasets)}')
-            print(
-                f'Train CT to LoRA rel. improvement: {100 * sum([result_dict[ds]["rel_improve_train_ct_to_lora"] for ds in valid_datasets]) / len(valid_datasets):.2f}%')
+            print(f"Summary for {model}:")
+            for method in method_list:
+                if method == 'ct':
+                    continue
+                rel_improvements = [result_dict[ds][method]['rel_improve'] for ds in valid_datasets]
+                count_better = sum(result_dict[ds][method]['better_than_ct'] for ds in valid_datasets)
+                beta_values = [result_dict[ds][f'{method}_avg_beta']
+                               for ds in valid_datasets if f'{method}_avg_beta' in result_dict[ds]]
+                acc_values = [result_dict[ds][f'{method}_avg_accuracy']
+                              for ds in valid_datasets if f'{method}_avg_accuracy' in result_dict[ds]]
 
-            print(
-                f'CT better than base: {sum([result_dict[ds]["ct_better_than_base"] for ds in valid_datasets])} / {len(valid_datasets)}')
-            print(
-                f'CT to base rel. improvement: {100 * sum([result_dict[ds]["rel_improve_ct_to_base"] for ds in valid_datasets]) / len(valid_datasets):.2f}%')
-            print(
-                f'CT better than LoRA: {sum([result_dict[ds]["ct_better_than_lora"] for ds in valid_datasets])} / {len(valid_datasets)}')
-            print(
-                f'CT to LoRA rel. improvement: {100 * sum([result_dict[ds]["rel_improve_ct_to_lora"] for ds in valid_datasets]) / len(valid_datasets):.2f}%')
+                print(f"{method}:")
+                print(f"  Better than CT: {count_better} / {len(valid_datasets)}")
+                print(f"  Relative improvement over CT: {100 * np.mean(rel_improvements):.2f}%")
+                if acc_values:
+                    print(f"  Average accuracy: {np.mean(acc_values):.2f}")
+                if beta_values:
+                    print(f"  Average beta: {np.mean(beta_values):.2f}")
 
-            # Report average beta over all datasets
-            avg_beta_all = np.mean([v for v in ct_beta_values.values() if v is not None])
-            print(f'Average beta for {model}: {avg_beta_all:.2f}')
+            ct_accs = [result_dict[ds]['ct_accuracy'] for ds in valid_datasets]
+            print(f"CT average accuracy: {np.mean(ct_accs):.2f}")
+
+            ct_beta_values = [result_dict[ds]['ct_avg_beta']
+                              for ds in valid_datasets if 'ct_avg_beta' in result_dict[ds]]
+            if ct_beta_values:
+                print(f"CT average beta: {np.mean(ct_beta_values):.2f}")
         else:
             print(f'No complete records for {model}.')
