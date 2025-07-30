@@ -82,14 +82,12 @@ if __name__ == "__main__":
 
     seed_list = [42, 43, 44]
 
+    pretrained_ds = 'imagenet'
+
+    transfer_test_bs = 250
+
     for seed in seed_list:
         for model in model_list:
             for transfer_ds in dataset_list:
-                if 'swin' in model:
-                    pretrained_ds = 'imagenette'
-                    transfer_test_bs = 500
-                else:
-                    pretrained_ds = 'imagenet'
-                    transfer_test_bs = 800
                 if not job_completed(pretrained_ds, transfer_ds, model, seed):
                     main({'model': model, 'pretrained_ds': pretrained_ds, 'transfer_ds': transfer_ds, 'seed': seed, 'transfer_test_bs': transfer_test_bs}, job_dir)
