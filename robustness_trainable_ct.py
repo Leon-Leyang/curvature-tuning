@@ -75,11 +75,11 @@ def main():
     for param in model.parameters():
         param.requires_grad = False
     if 'swin' in args.model:
-        model.head = nn.Linear(in_features=model.head.in_features, out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds]).to(device)
+        model.head = nn.Linear(in_features=model.head.in_features, out_features=DATASET_TO_NUM_CLASSES[args.dataset]).to(device)
     elif 'vgg' in args.model:
-        model.classifier[-1] = nn.Linear(in_features=model.classifier[-1].in_features, out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds]).to(device)
+        model.classifier[-1] = nn.Linear(in_features=model.classifier[-1].in_features, out_features=DATASET_TO_NUM_CLASSES[args.dataset]).to(device)
     else:
-        model.fc = nn.Linear(in_features=model.fc.in_features, out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds]).to(device)
+        model.fc = nn.Linear(in_features=model.fc.in_features, out_features=DATASET_TO_NUM_CLASSES[args.dataset]).to(device)
 
     model.eval()
 
