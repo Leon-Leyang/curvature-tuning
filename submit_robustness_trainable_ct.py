@@ -6,7 +6,6 @@ from pathlib import Path
 def main(kwargs, job_dir):
     model = kwargs['model']
     dataset = kwargs['dataset']
-    threat = kwargs['threat']
     batch_size = kwargs['batch_size']
     seed = kwargs['seed']
 
@@ -22,7 +21,7 @@ def main(kwargs, job_dir):
         nodes=1,                  # Number of nodes
         timeout_min=5760,         # Maximum duration in minutes
         slurm_partition="gpu", # Partition name
-        slurm_job_name=f"{threat}_{dataset}_{model}_seed{seed}",  # Job name
+        slurm_job_name=f"{dataset}_{model}_seed{seed}",  # Job name
         slurm_mail_type="ALL",    # Email settings
         slurm_mail_user="leyang_hu@brown.edu",  # Email address
     )
@@ -32,20 +31,26 @@ def main(kwargs, job_dir):
         "source /oscar/runtime/software/external/miniconda3/23.11.0/etc/profile.d/conda.sh && "
         "conda deactivate && "
         "conda activate spline && "
-        f"python -u robustness_trainable_ct.py --model {model} --threat {threat} --dataset {dataset} --batch_size {batch_size} --seed {seed}"
+        f"python -u robustness_trainable_ct.py --model {model} --dataset {dataset} --batch_size {batch_size} --seed {seed}"
     )
 
     # Submit the job
     job = executor.submit(os.system, command)
-    print(f"Job submitted for {threat} threat on model {model} on dataset {dataset} with seed {seed} with job ID {job.job_id}")
+    print(f"Job submitted for model {model} on dataset {dataset} with seed {seed} with job ID {job.job_id}")
 
 
-def job_completed(threat, dataset, model, seed):
+def job_completed(dataset, model, seed):
     dataset = f'imagenet_to_{dataset}'
     result_path = [
-        f'./robust_results/base_{threat}_{dataset}_sample1000_{model}_seed{seed}.json'
-        f'./robust_results/train_ct_{threat}_{dataset}_sample1000_{model}_seed{seed}.json'
-        f'./robust_results/lora_rank1_alpha1_{threat}_{dataset}_sample1000_{model}_seed{seed}.json'
+        f'./robust_results/base_linf_{dataset}_sample1000_{model}_seed{seed}.json'
+        f'./robust_results/train_ct_linf_{dataset}_sample1000_{model}_seed{seed}.json'
+        f'./robust_results/lora_rank1_alpha1_linf_{dataset}_sample1000_{model}_seed{seed}.json'
+        f'./robust_results/base_l2_{dataset}_sample1000_{model}_seed{seed}.json'
+        f'./robust_results/train_ct_l2_{dataset}_sample1000_{model}_seed{seed}.json'
+        f'./robust_results/lora_rank1_alpha1_l2_{dataset}_sample1000_{model}_seed{seed}.json'
+        f'./robust_results/base_corruptions_{dataset}_sample1000_{model}_seed{seed}.json'
+        f'./robust_results/train_ct_corruptions_{dataset}_sample1000_{model}_seed{seed}.json'
+        f'./robust_results/lora_rank1_alpha1_corruptions_{dataset}_sample1000_{model}_seed{seed}.json'
     ]
 
     # Check if all result files exist
@@ -73,20 +78,12 @@ if __name__ == "__main__":
         "cifar100",
     ]
 
-    # List of threats
-    threat_list = [
-        "Linf",
-        "L2",
-        "corruptions",
-    ]
-
     seed_list = [42, 43, 44]
 
     batch_size = 1000
 
     for seed in seed_list:
-        for threat in threat_list:
-            for model in model_list:
-                for dataset in dataset_list:
-                    if not job_completed(threat, dataset, model, seed):
-                        main({'model': model, 'dataset': dataset, 'threat': threat, 'batch_size': batch_size, 'seed': seed}, job_dir)
+        for model in model_list:
+            for dataset in dataset_list:
+                if not job_completed(dataset, model, seed):
+                    main({'model': model, 'dataset': dataset, 'batch_size': batch_size, 'seed': seed}, job_dir)
