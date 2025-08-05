@@ -32,7 +32,7 @@ def main(kwargs, job_dir):
         "source /oscar/runtime/software/external/miniconda3/23.11.0/etc/profile.d/conda.sh && "
         "conda deactivate && "
         "conda activate spline && "
-        f"python -u robustness.py --model {model} --threat {threat} --dataset {dataset} --batch_size {batch_size} --seed {seed}"
+        f"python -u robustness_trainable_ct.py --model {model} --threat {threat} --dataset {dataset} --batch_size {batch_size} --seed {seed}"
     )
 
     # Submit the job
