@@ -42,8 +42,8 @@ def main(kwargs, job_dir):
 
 def job_completed(threat, dataset, model, seed):
     result_path = [
-        f'./robust_results/base_{threat}_{dataset}_{model}_seed{seed}.json',
-        f'./robust_results/ct_{threat}_{dataset}_{model}_seed{seed}.json',
+        f'./robust_results/base_{threat}_{dataset}_sample1000_{model}_seed{seed}.json',
+        f'./robust_results/ct_{threat}_{dataset}_sample1000_{model}_seed{seed}.json',
     ]
 
     # Check if all result files exist
