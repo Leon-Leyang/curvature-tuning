@@ -110,7 +110,7 @@ def main():
 
     logger.info(f'Running on {device}')
 
-    model = get_pretrained_model(args.dataset, args.model)
+    model = get_pretrained_model('imagenet', args.model)
     model.eval()
 
     transform = get_transform(args.threat, args.dataset)
