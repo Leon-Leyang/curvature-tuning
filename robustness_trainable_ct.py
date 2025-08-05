@@ -166,7 +166,7 @@ def main():
     os.makedirs('./robust_results', exist_ok=True)
     with open(result_path['baseline'], 'w') as f:
         json.dump({'accuracy': base_acc}, f, indent=2)
-    with open(result_path['ct'], 'w') as f:
+    with open(result_path['train_ct'], 'w') as f:
         json.dump({'accuracy': ct_acc, 'beta': mean_beta, 'coeff': mean_coeff}, f, indent=2)
     with open(result_path['lora'], 'w') as f:
         json.dump({'accuracy': lora_acc}, f, indent=2)
