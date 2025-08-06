@@ -42,15 +42,15 @@ def main(kwargs, job_dir):
 def job_completed(dataset, model, seed):
     dataset = f'imagenet_to_{dataset}'
     result_path = [
-        f'./robust_results/base_linf_{dataset}_sample1000_{model}_seed{seed}.json'
-        f'./robust_results/train_ct_linf_{dataset}_sample1000_{model}_seed{seed}.json'
-        f'./robust_results/lora_rank1_alpha1_linf_{dataset}_sample1000_{model}_seed{seed}.json'
-        f'./robust_results/base_l2_{dataset}_sample1000_{model}_seed{seed}.json'
-        f'./robust_results/train_ct_l2_{dataset}_sample1000_{model}_seed{seed}.json'
-        f'./robust_results/lora_rank1_alpha1_l2_{dataset}_sample1000_{model}_seed{seed}.json'
-        f'./robust_results/base_corruptions_{dataset}_sample1000_{model}_seed{seed}.json'
-        f'./robust_results/train_ct_corruptions_{dataset}_sample1000_{model}_seed{seed}.json'
-        f'./robust_results/lora_rank1_alpha1_corruptions_{dataset}_sample1000_{model}_seed{seed}.json'
+        f'./robust_results/base_linf_{dataset}_sample1000_{model}_seed{seed}.json',
+        f'./robust_results/train_ct_linf_{dataset}_sample1000_{model}_seed{seed}.json',
+        f'./robust_results/lora_rank1_alpha1_linf_{dataset}_sample1000_{model}_seed{seed}.json',
+        f'./robust_results/base_l2_{dataset}_sample1000_{model}_seed{seed}.json',
+        f'./robust_results/train_ct_l2_{dataset}_sample1000_{model}_seed{seed}.json',
+        f'./robust_results/lora_rank1_alpha1_l2_{dataset}_sample1000_{model}_seed{seed}.json',
+        f'./robust_results/base_corruptions_{dataset}_sample1000_{model}_seed{seed}.json',
+        f'./robust_results/train_ct_corruptions_{dataset}_sample1000_{model}_seed{seed}.json',
+        f'./robust_results/lora_rank1_alpha1_corruptions_{dataset}_sample1000_{model}_seed{seed}.json',
     ]
 
     # Check if all result files exist
