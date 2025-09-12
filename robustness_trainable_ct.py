@@ -52,14 +52,14 @@ def main():
             {'baseline': f'./robust_results/base_linf_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json',
             'train_ct': f'./robust_results/train_ct_linf_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json',
             'lora': f'./robust_results/lora_rank{lora_rank}_alpha{lora_alpha}_linf_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json'},
-        'L2':
-            {'baseline': f'./robust_results/base_l2_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json',
-            'train_ct': f'./robust_results/train_ct_l2_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json',
-            'lora': f'./robust_results/lora_rank{lora_rank}_alpha{lora_alpha}_l2_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json'},
-        'corruptions':
-            {'baseline': f'./robust_results/base_corruptions_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json',
-            'train_ct': f'./robust_results/train_ct_corruptions_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json',
-            'lora': f'./robust_results/lora_rank{lora_rank}_alpha{lora_alpha}_corruptions_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json'},
+        # 'L2':
+        #     {'baseline': f'./robust_results/base_l2_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json',
+        #     'train_ct': f'./robust_results/train_ct_l2_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json',
+        #     'lora': f'./robust_results/lora_rank{lora_rank}_alpha{lora_alpha}_l2_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json'},
+        # 'corruptions':
+        #     {'baseline': f'./robust_results/base_corruptions_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json',
+        #     'train_ct': f'./robust_results/train_ct_corruptions_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json',
+        #     'lora': f'./robust_results/lora_rank{lora_rank}_alpha{lora_alpha}_corruptions_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json'},
     }
 
     state_path = {
@@ -67,14 +67,14 @@ def main():
             {'baseline': Path(f"./cache/base_linf_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json"),
             'train_ct': Path(f"./cache/train_ct_linf_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json"),
             'lora': Path(f"./cache/lora_rank{lora_rank}_alpha{lora_alpha}_linf_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json")},
-        'L2':
-            {'baseline': Path(f"./cache/base_l2_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json"),
-            'train_ct': Path(f"./cache/train_ct_l2_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json"),
-            'lora': Path(f"./cache/lora_rank{lora_rank}_alpha{lora_alpha}_l2_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json")},
-        'corruptions':
-            {'baseline': Path(f"./cache/base_corruptions_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json"),
-            'train_ct': Path(f"./cache/train_ct_corruptions_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json"),
-            'lora': Path(f"./cache/lora_rank{lora_rank}_alpha{lora_alpha}_corruptions_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json")},
+        # 'L2':
+        #     {'baseline': Path(f"./cache/base_l2_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json"),
+        #     'train_ct': Path(f"./cache/train_ct_l2_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json"),
+        #     'lora': Path(f"./cache/lora_rank{lora_rank}_alpha{lora_alpha}_l2_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json")},
+        # 'corruptions':
+        #     {'baseline': Path(f"./cache/base_corruptions_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json"),
+        #     'train_ct': Path(f"./cache/train_ct_corruptions_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json"),
+        #     'lora': Path(f"./cache/lora_rank{lora_rank}_alpha{lora_alpha}_corruptions_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json")},
     }
 
     # Check if all paths exist
@@ -161,7 +161,8 @@ def main():
 
     data_dir = './data/imagenet' if 'imagenet' in args.dataset else './data'
 
-    for threat in ["Linf", "L2", "corruptions"]:
+    # for threat in ["Linf", "L2", "corruptions"]:
+    for threat in ["Linf"]:
         transform = get_transform(threat, args.dataset)
 
         # Test the baseline model
