@@ -25,22 +25,20 @@ if __name__ == "__main__":
         "medmnist/pathmnist",
     ]
     method_list = ['base', 'lora_rank1', 'train_ct']
-    seeds = [42]
+    seeds = [42, 43, 44]
 
     for model in model_list:
-        pretrained_ds = 'imagenet'
         print('-' * 20)
         print(f'Comparing methods on {model}...')
         print('-' * 20)
         result_dict = {}
         valid_datasets = []
-        # ct_beta_values = {}
 
         for transfer_ds in dataset_list:
             complete = True
             for method in method_list:
                 for seed in seeds:
-                    file_path = f'./results/{method}_{pretrained_ds}_to_{transfer_ds.replace("/", "-")}_{model}_seed{seed}.json'
+                    file_path = f'./results/{method}_imagenet_to_{transfer_ds.replace("/", "-")}_{model}_seed{seed}.json'
                     if not os.path.exists(file_path):
                         print(f'Missing: {file_path}')
                         complete = False
@@ -48,16 +46,13 @@ if __name__ == "__main__":
                 continue
 
             method_metrics = {m: {'accuracy': [], 'num_params': []} for m in method_list}
-            # beta_list = []
 
             for seed in seeds:
                 for method in method_list:
-                    file_path = f'./results/{method}_{pretrained_ds}_to_{transfer_ds.replace("/", "-")}_{model}_seed{seed}.json'
+                    file_path = f'./results/{method}_imagenet_to_{transfer_ds.replace("/", "-")}_{model}_seed{seed}.json'
                     data = load_json(file_path)
                     method_metrics[method]['accuracy'].append(data['accuracy'])
                     method_metrics[method]['num_params'].append(data['num_params'])
-                    # if method == 'ct' and 'beta' in data:
-                    #     beta_list.append(data['beta'])
 
             averaged_data = {}
             for method in method_list:
@@ -68,30 +63,14 @@ if __name__ == "__main__":
                 averaged_data[f"{method}_num_params"] = np.mean(params)
                 averaged_data[f"{method}_num_params_std"] = np.std(params)
 
-            # if beta_list:
-            #     avg_beta = np.mean(beta_list)
-            #     ct_beta_values[transfer_ds] = avg_beta
-            # else:
-            #     avg_beta = None
-
             result = {
                 'num_params_ratio': averaged_data['train_ct_num_params'] / averaged_data['lora_rank1_num_params'],
                 'rel_improve_train_ct_to_base': (averaged_data['train_ct_accuracy'] - averaged_data['base_accuracy']) /
                                                 averaged_data['base_accuracy'],
-                # 'rel_improve_train_ct_to_ct': (averaged_data['train_ct_accuracy'] - averaged_data['ct_accuracy']) /
-                #                               averaged_data['ct_accuracy'],
                 'rel_improve_train_ct_to_lora': (averaged_data['train_ct_accuracy'] - averaged_data[
                     'lora_rank1_accuracy']) / averaged_data['lora_rank1_accuracy'],
                 'train_ct_better_than_base': averaged_data['train_ct_accuracy'] > averaged_data['base_accuracy'],
-                # 'train_ct_better_than_ct': averaged_data['train_ct_accuracy'] > averaged_data['ct_accuracy'],
                 'train_ct_better_than_lora': averaged_data['train_ct_accuracy'] > averaged_data['lora_rank1_accuracy'],
-                # 'rel_improve_ct_to_base': (averaged_data['ct_accuracy'] - averaged_data['base_accuracy']) /
-                #                           averaged_data['base_accuracy'],
-                # 'rel_improve_ct_to_lora': (averaged_data['ct_accuracy'] - averaged_data['lora_rank1_accuracy']) /
-                #                           averaged_data['lora_rank1_accuracy'],
-                # 'ct_better_than_base': averaged_data['ct_accuracy'] > averaged_data['base_accuracy'],
-                # 'ct_better_than_lora': averaged_data['ct_accuracy'] > averaged_data['lora_rank1_accuracy'],
-                # 'avg_beta': avg_beta
             }
 
             result_dict[transfer_ds] = result
@@ -104,8 +83,6 @@ if __name__ == "__main__":
                 acc_std = averaged_data[f'{method}_accuracy_std']
                 param_mean = averaged_data[f'{method}_num_params']
                 print(f"{method}: acc = {acc_mean:.2f} ± {acc_std:.2f}, params = {param_mean}")
-            # if avg_beta is not None:
-            #     print(f"ct beta: {avg_beta:.2f}")
             print()
 
         # Summarize across datasets
@@ -116,26 +93,9 @@ if __name__ == "__main__":
                 f'Train CT better than base: {sum([result_dict[ds]["train_ct_better_than_base"] for ds in valid_datasets])} / {len(valid_datasets)}')
             print(
                 f'Train CT to base rel. improvement: {100 * sum([result_dict[ds]["rel_improve_train_ct_to_base"] for ds in valid_datasets]) / len(valid_datasets):.2f}%')
-            # print(
-            #     f'Train CT better than CT: {sum([result_dict[ds]["train_ct_better_than_ct"] for ds in valid_datasets])} / {len(valid_datasets)}')
-            # print(
-            #     f'Train CT to CT rel. improvement: {100 * sum([result_dict[ds]["rel_improve_train_ct_to_ct"] for ds in valid_datasets]) / len(valid_datasets):.2f}%')
             print(
                 f'Train CT better than LoRA: {sum([result_dict[ds]["train_ct_better_than_lora"] for ds in valid_datasets])} / {len(valid_datasets)}')
             print(
                 f'Train CT to LoRA rel. improvement: {100 * sum([result_dict[ds]["rel_improve_train_ct_to_lora"] for ds in valid_datasets]) / len(valid_datasets):.2f}%')
-
-            # print(
-            #     f'CT better than base: {sum([result_dict[ds]["ct_better_than_base"] for ds in valid_datasets])} / {len(valid_datasets)}')
-            # print(
-            #     f'CT to base rel. improvement: {100 * sum([result_dict[ds]["rel_improve_ct_to_base"] for ds in valid_datasets]) / len(valid_datasets):.2f}%')
-            # print(
-            #     f'CT better than LoRA: {sum([result_dict[ds]["ct_better_than_lora"] for ds in valid_datasets])} / {len(valid_datasets)}')
-            # print(
-            #     f'CT to LoRA rel. improvement: {100 * sum([result_dict[ds]["rel_improve_ct_to_lora"] for ds in valid_datasets]) / len(valid_datasets):.2f}%')
-
-            # Report average beta over all datasets
-            # avg_beta_all = np.mean([v for v in ct_beta_values.values() if v is not None])
-            # print(f'Average beta for {model}: {avg_beta_all:.2f}')
         else:
             print(f'No complete records for {model}.')

@@ -118,7 +118,7 @@ def extract_features_and_labels(feature_extractor, dataloader):
     return torch.cat(features_list), torch.cat(labels_list)
 
 
-def linear_probe(model, train_loader, val_loader, beta=None, new_train_batch_size=32, new_val_batch_size=800, deterministic=False):
+def linear_probe(model, train_loader, val_loader, beta=None, new_train_batch_size=32, new_val_batch_size=800, deterministic=False, lr=1e-3):
     """
     Linear probing by extracting features using the frozen backbone (excluding the classifier),
     then training a new linear classifier on those features.
@@ -174,7 +174,7 @@ def linear_probe(model, train_loader, val_loader, beta=None, new_train_batch_siz
         num_features = train_feats.shape[1]
         num_classes = train_labels.max().item() + 1
         classifier = nn.Linear(num_features, num_classes).to(device)
-        optimizer = optim.Adam(classifier.parameters(), lr=1e-3)
+        optimizer = optim.Adam(classifier.parameters(), lr=lr)
         warmup_scheduler = WarmUpLR(optimizer, len(train_loader_new))
         scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10, 20], gamma=0.1)
 
