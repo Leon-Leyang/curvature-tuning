@@ -22,7 +22,7 @@ def main(kwargs, job_dir):
         nodes=1,                  # Number of nodes
         timeout_min=5760,         # Maximum duration in minutes
         slurm_partition="gpu", # Partition name
-        slurm_job_name=f"gen_ct_for_gelu_{pretrained_ds}_to_{transfer_ds}_{model}_seed{seed}",  # Job name
+        slurm_job_name=f"gen_lp_for_gelu_{pretrained_ds}_to_{transfer_ds}_{model}_seed{seed}",  # Job name
         slurm_mail_type="ALL",    # Email settings
         slurm_mail_user="leyang_hu@brown.edu",  # Email address
     )
@@ -32,7 +32,7 @@ def main(kwargs, job_dir):
         "source /oscar/runtime/software/external/miniconda3/23.11.0/etc/profile.d/conda.sh && "
         "conda deactivate && "
         "conda activate spline && "
-        f"python -u generalization_ct_for_gelu.py --model {model} --pretrained_ds {pretrained_ds} --transfer_ds {transfer_ds} --seed {seed} --linear_probe_test_bs {linear_probe_test_bs}"
+        f"python -u generalization_lp_for_gelu.py --model {model} --pretrained_ds {pretrained_ds} --transfer_ds {transfer_ds} --seed {seed} --linear_probe_test_bs {linear_probe_test_bs}"
     )
 
     # Submit the job
