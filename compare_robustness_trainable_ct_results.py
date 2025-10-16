@@ -9,6 +9,7 @@ def load_json(path):
 
 
 if __name__ == "__main__":
+    # -------------------- Config --------------------
     model_list = ['resnet18', 'resnet50', 'resnet152']
     dataset_list = ['cifar10', 'cifar100']
     threats = ['Linf', 'L2', 'corruptions']
@@ -23,16 +24,13 @@ if __name__ == "__main__":
 
     result_root = "./robust_results"
 
-    # (model, dataset, threat) -> method -> list of accs
+    # (model, dataset, threat) -> method -> list of accs (over seeds)
     results = defaultdict(lambda: defaultdict(list))
 
-    # dataset -> {'ct': [...], 'lora': [...]}
-    dataset_improvements = defaultdict(lambda: {'ct': [], 'lora': []})
-
+    # -------------------- Ingest --------------------
     for model in model_list:
-        pretrained_ds = 'imagenet'
         for dataset in dataset_list:
-            dataset_key = f"{pretrained_ds}_to_{dataset}"
+            dataset_key = f"imagenet_to_{dataset}"
             for threat in threats:
                 key = (model, dataset, threat)
                 for seed in seeds:
@@ -49,8 +47,10 @@ if __name__ == "__main__":
                         except Exception as e:
                             print(f"[Error] reading {file_path}: {e}")
 
-    # (model, threat) -> method -> list of mean accs over datasets
-    aggregate_summary = defaultdict(lambda: defaultdict(list))
+    # -------------------- Per-(model,dataset,threat) summary and collection --------------------
+    # For computing the metric, we need per-(model, threat, dataset) means
+    # (model, threat) -> dataset -> method -> mean_acc_over_seeds
+    per_dataset_means = defaultdict(lambda: defaultdict(dict))
 
     for (model, dataset, threat), method_accs in results.items():
         print(f"\n[{model} | {dataset} | {threat}]")
@@ -58,40 +58,46 @@ if __name__ == "__main__":
         for method in methods:
             if method in method_accs and method_accs[method]:
                 accs = method_accs[method]
-                mean = np.mean(accs)
-                std = np.std(accs)
+                mean = float(np.mean(accs))
+                std = float(np.std(accs))
                 means[method] = mean
                 print(f"{method_display_names[method]}: acc = {mean:.2f} ± {std:.2f}")
-                aggregate_summary[(model, threat)][method].append(mean)
+                per_dataset_means[(model, threat)][dataset][method] = mean
 
-        # Per-dataset relative improvements
-        if 'base' in means:
-            base = means['base']
-            if base != 0:
-                if 'train_ct' in means:
-                    rel_ct = 100 * (means['train_ct'] - base) / base
-                    dataset_improvements[dataset]['ct'].append(rel_ct)
-                if 'lora_rank1_alpha1' in means:
-                    rel_lora = 100 * (means['lora_rank1_alpha1'] - base) / base
-                    dataset_improvements[dataset]['lora'].append(rel_lora)
-
-    # Summary over datasets for each (model, threat)
+    # -------------------- Summary by (model, threat) --------------------
     print("\n========== Summary by (Model, Threat) ==========")
-    for (model, threat), method_means in aggregate_summary.items():
+    for (model, threat), dataset_to_methods in per_dataset_means.items():
         print(f"\n[{model} | {threat}]")
-        for method in methods:
-            if method in method_means:
-                avg = np.mean(method_means[method])
-                print(f"{method_display_names[method]} avg acc over datasets: {avg:.2f}")
 
-        if 'base' in method_means:
-            base = np.mean(method_means['base'])
-            if base != 0:
-                if 'train_ct' in method_means:
-                    ct = np.mean(method_means['train_ct'])
-                    rel_ct = 100 * (ct - base) / base
-                    print(f"Trainable CT rel. improvement over baseline: {rel_ct:.2f}%")
-                if 'lora_rank1_alpha1' in method_means:
-                    lora = np.mean(method_means['lora_rank1_alpha1'])
-                    rel_lora = 100 * (lora - base) / base
-                    print(f"LoRA rel. improvement over baseline: {rel_lora:.2f}%")
+        # 1) Average accuracies across datasets (for reference)
+        for method in methods:
+            vals = [m[method] for m in dataset_to_methods.values() if method in m]
+            if vals:
+                print(f"{method_display_names[method]} avg acc over datasets: {np.mean(vals):.2f}")
+
+        # 2) Average of per-dataset relative improvements
+        #    Each dataset contributes equally; we compute relative improvement within each dataset, then average.
+        #    Skip datasets with missing base or zero base.
+        # Trainable CT to base
+        ct_to_base_rels = []
+        for ds, m in dataset_to_methods.items():
+            if 'base' in m and m['base'] != 0 and 'train_ct' in m:
+                ct_to_base_rels.append(100.0 * (m['train_ct'] - m['base']) / m['base'])
+        if ct_to_base_rels:
+            print(f"Trainable CT avg REL improvement: {np.mean(ct_to_base_rels):.2f}%")
+
+        # LoRA to base
+        lora_to_base_rels = []
+        for ds, m in dataset_to_methods.items():
+            if 'base' in m and m['base'] != 0 and 'lora_rank1_alpha1' in m:
+                lora_to_base_rels.append(100.0 * (m['lora_rank1_alpha1'] - m['base']) / m['base'])
+        if lora_to_base_rels:
+            print(f"LoRA avg REL improvement: {np.mean(lora_to_base_rels):.2f}%")
+
+        # Trainable CT to LoRA
+        ct_to_lora_rels = []
+        for ds, m in dataset_to_methods.items():
+            if 'lora_rank1_alpha1' in m and m['lora_rank1_alpha1'] != 0 and 'train_ct' in m:
+                ct_to_lora_rels.append(100.0 * (m['train_ct'] - m['lora_rank1_alpha1']) / m['lora_rank1_alpha1'])
+        if ct_to_lora_rels:
+            print(f"Trainable CT to LoRA avg REL improvement: {np.mean(ct_to_lora_rels):.2f}%")
