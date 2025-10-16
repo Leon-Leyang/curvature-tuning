@@ -26,6 +26,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.ba
 
 
 def transfer(model, train_loader, val_loader, lr=1e-3, ct_lr=1e-1):
+    """Train for up to 20 epochs, return the best (by val acc) model and its val acc."""
     criterion = nn.CrossEntropyLoss()
 
     ct_params = []
@@ -64,18 +65,23 @@ def transfer(model, train_loader, val_loader, lr=1e-3, ct_lr=1e-1):
 
 def get_args():
     parser = argparse.ArgumentParser(description='Generalization experiments on image classification datasets')
-    parser.add_argument(
-        '--model',
-        type=str,
-        default='resnet18',
-        help='Model to test'
-    )
+    parser.add_argument('--model', type=str, default='resnet18', help='Model to test')
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
     parser.add_argument('--pretrained_ds', type=str, default='imagenet', help='Pretrained dataset')
     parser.add_argument('--transfer_ds', type=str, default='beans', help='Transfer dataset')
     parser.add_argument('--transfer_train_bs', type=int, default=32, help='Batch size for transfer learning')
     parser.add_argument('--transfer_test_bs', type=int, default=800, help='Batch size for transfer learning test')
     return parser.parse_args()
+
+
+def _cpu_clone_state_dict(model: nn.Module):
+    """Return a CPU-cloned state_dict (no GPU storage kept)."""
+    return {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+
+
+def _maybe_empty_cache():
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
 
 def main():
@@ -101,7 +107,6 @@ def main():
     logger.info(f'Log file: {log_file_path}')
 
     fix_seed(args.seed)  # Fix the seed each time
-
     logger.info(f'Running on {device}')
 
     dataset = f'{args.pretrained_ds}_to_{args.transfer_ds}'
@@ -129,26 +134,30 @@ def main():
     # ============================
     logger.info('Testing Trainable CT with ct_lr cross-validation...')
     dummy_input_shape = (1, 3, 224, 224)
-    # Base CT model (untrained) — we'll deepcopy this per ct_lr
-    base_ct_model = replace_module_dynamic(
+
+    # Build base CT model ON CPU (less VRAM usage); we will move copies to GPU per trial.
+    base_ct_model_cpu = replace_module_dynamic(
         copy.deepcopy(model),
         dummy_input_shape,
         old_module=nn.GELU,
         new_module=TrainableCTU,
         raw_beta=0.5767,
         raw_coeff=10.0
-    ).to(device)
+    ).cpu()  # ensure CPU
 
-    num_params_ct = sum(p.numel() for p in base_ct_model.parameters() if p.requires_grad)
+    # Count trainable params (device-agnostic)
+    num_params_ct = sum(p.numel() for p in base_ct_model_cpu.parameters() if p.requires_grad)
     logger.info(f'[CT] Number of trainable parameters: {num_params_ct}')
 
-    # Probe initial (pre-train) beta/coeff for info
-    init_beta, init_coeff = get_mean_beta_and_coeff(base_ct_model)
+    # Initial (pre-train) beta/coeff for info
+    init_beta, init_coeff = get_mean_beta_and_coeff(base_ct_model_cpu)
     logger.info(f'[CT] Initial Mean Beta: {init_beta:.6f}, Initial Mean Coeff: {init_coeff:.6f}')
 
     ct_lr_candidates = [1e-1, 1e-2, 1e-3, 1e-4]
     ct_lr_to_val = {}
-    ct_lr_to_model = {}
+    ct_best_lr = None
+    ct_best_val = -float('inf')
+    ct_best_state_cpu = None  # CPU state_dict to save VRAM
 
     for ct_lr in ct_lr_candidates:
         run_name = f'train_ct_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}_ctlr{ct_lr:.0e}'
@@ -158,27 +167,38 @@ def main():
             config={**vars(args), 'ct_lr': ct_lr, 'base_lr': 1e-3},
             reinit=True,
         )
+
         logger.info(f'[CT] Starting transfer with ct_lr={ct_lr:.0e}, base lr=1e-3...')
-        m = copy.deepcopy(base_ct_model).to(device)
+        # Fresh GPU copy for this trial
+        m = copy.deepcopy(base_ct_model_cpu).to(device)
         m, val_acc = transfer(m, train_loader, val_loader, lr=1e-3, ct_lr=ct_lr)
         ct_lr_to_val[ct_lr] = float(val_acc)
-        ct_lr_to_model[ct_lr] = m
         wandb.log({'val_accuracy': val_acc, 'num_params': num_params_ct})
         wandb.finish()
         logger.info(f'[CT] Validation Accuracy (ct_lr={ct_lr:.0e}): {val_acc:.2f}%')
 
-    # Pick the best ct_lr by validation accuracy
-    ct_best_lr = max(ct_lr_to_val, key=ct_lr_to_val.get)
-    ct_best_val = ct_lr_to_val[ct_best_lr]
-    ct_model = ct_lr_to_model[ct_best_lr]
+        # Keep only best on CPU
+        if val_acc > ct_best_val:
+            ct_best_val = float(val_acc)
+            ct_best_lr = ct_lr
+            ct_best_state_cpu = _cpu_clone_state_dict(m)
+
+        # Free GPU memory from this trial
+        del m
+        _maybe_empty_cache()
+
+    assert ct_best_state_cpu is not None, "CT CV did not produce a best state."
+
+    # Rebuild best CT model on GPU and evaluate test
+    ct_model = copy.deepcopy(base_ct_model_cpu).to(device)
+    ct_model.load_state_dict(ct_best_state_cpu, strict=True)
     logger.info(f'[CT] Best ct_lr={ct_best_lr:.0e} with val_acc={ct_best_val:.2f}%')
 
-    # Test the best CT model
     logger.info('[CT] Evaluating best CT model on test set...')
     _, ct_acc = test_epoch(-1, ct_model, test_loader, criterion, device)
     logger.info(f'[CT] Test Accuracy (best ct_lr): {ct_acc:.2f}%')
 
-    # Recompute mean beta/coeff post-training on the selected model
+    # Final mean beta/coeff after training (best model)
     mean_beta, mean_coeff = get_mean_beta_and_coeff(ct_model)
     logger.info(f'[CT] Final Mean Beta: {mean_beta:.6f}, Final Mean Coeff: {mean_coeff:.6f}')
 
@@ -206,26 +226,28 @@ def main():
     logger.info('Testing LoRA with lr cross-validation...')
     lora_alpha = lora_rank
 
-    # Base LoRA model template; we'll deepcopy/refresh the LoRA model per lr
-    base_lora_model = get_lora_model(copy.deepcopy(model), r=lora_rank, alpha=lora_alpha).to(device)
+    # Build base LoRA model ON CPU; we will move copies to GPU per trial.
+    base_lora_model_cpu = get_lora_model(copy.deepcopy(model), r=lora_rank, alpha=lora_alpha).cpu()
     # Replace the last layer with standard linear (ensuring correct head)
     if 'swin' not in args.model:
-        base_lora_model.fc = nn.Linear(
-            in_features=base_lora_model.fc.in_features,
+        base_lora_model_cpu.fc = nn.Linear(
+            in_features=base_lora_model_cpu.fc.in_features,
             out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds]
-        ).to(device)
+        )
     else:
-        base_lora_model.head = nn.Linear(
-            in_features=base_lora_model.head.in_features,
+        base_lora_model_cpu.head = nn.Linear(
+            in_features=base_lora_model_cpu.head.in_features,
             out_features=DATASET_TO_NUM_CLASSES[args.transfer_ds]
-        ).to(device)
+        )
 
-    num_params_lora = sum(p.numel() for p in base_lora_model.parameters() if p.requires_grad)
+    num_params_lora = sum(p.numel() for p in base_lora_model_cpu.parameters() if p.requires_grad)
     logger.info(f'[LoRA] Number of trainable parameters: {num_params_lora}')
 
     lora_lr_candidates = [1e-3, 1e-4, 1e-5]
     lora_lr_to_val = {}
-    lora_lr_to_model = {}
+    lora_best_lr = None
+    lora_best_val = -float('inf')
+    lora_best_state_cpu = None  # CPU state_dict
 
     for lr in lora_lr_candidates:
         run_name = f'lora_rank{lora_rank}_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}_lr{lr:.0e}'
@@ -235,24 +257,34 @@ def main():
             config={**vars(args), 'lr': lr, 'lora_rank': lora_rank, 'lora_alpha': lora_alpha},
             reinit=True,
         )
-        logger.info(f'[LoRA] Starting transfer with lr={lr:.0e}...')
-        # Fresh LoRA model for each LR
-        m = copy.deepcopy(base_lora_model).to(device)
 
-        m, val_acc = transfer(m, train_loader, val_loader, lr=lr)  # ct_lr not relevant for plain LoRA
+        logger.info(f'[LoRA] Starting transfer with lr={lr:.0e}...')
+        # Fresh GPU copy for this trial
+        m = copy.deepcopy(base_lora_model_cpu).to(device)
+
+        m, val_acc = transfer(m, train_loader, val_loader, lr=lr)
         lora_lr_to_val[lr] = float(val_acc)
-        lora_lr_to_model[lr] = m
         wandb.log({'val_accuracy': val_acc, 'num_params': num_params_lora})
         wandb.finish()
         logger.info(f'[LoRA] Validation Accuracy (lr={lr:.0e}): {val_acc:.2f}%')
 
-    # Pick the best LoRA lr by validation accuracy
-    lora_best_lr = max(lora_lr_to_val, key=lora_lr_to_val.get)
-    lora_best_val = lora_lr_to_val[lora_best_lr]
-    lora_model = lora_lr_to_model[lora_best_lr]
+        # Keep only best on CPU
+        if val_acc > lora_best_val:
+            lora_best_val = float(val_acc)
+            lora_best_lr = lr
+            lora_best_state_cpu = _cpu_clone_state_dict(m)
+
+        # Free GPU memory from this trial
+        del m
+        _maybe_empty_cache()
+
+    assert lora_best_state_cpu is not None, "LoRA CV did not produce a best state."
+
+    # Rebuild best LoRA model on GPU and evaluate test
+    lora_model = copy.deepcopy(base_lora_model_cpu).to(device)
+    lora_model.load_state_dict(lora_best_state_cpu, strict=True)
     logger.info(f'[LoRA] Best lr={lora_best_lr:.0e} with val_acc={lora_best_val:.2f}%')
 
-    # Test the best LoRA model
     logger.info('[LoRA] Evaluating best LoRA model on test set...')
     _, lora_acc = test_epoch(-1, lora_model, test_loader, criterion, device)
     logger.info(f'[LoRA] Test Accuracy (best lr): {lora_acc:.2f}%')
@@ -269,31 +301,41 @@ def main():
     })
     wandb.finish()
 
-    # Save the LoRA model checkpoint
+    # -----------
+    # Final logs
+    # -----------
+    logger.info(f'Trainable CT model trainable parameters: {num_params_ct}')
+    logger.info(f'LoRA model trainable parameters: {num_params_lora}')
+    logger.info(f'Trainable CT Accuracy: {ct_acc:.2f}% (best ct_lr={ct_best_lr:.0e})')
+    logger.info(f'LoRA Accuracy: {lora_acc:.2f}% (best lr={lora_best_lr:.0e})')
+    if lora_acc != 0:
+        rel_improve_lora = (ct_acc - lora_acc) / lora_acc
+        logger.info(f'Relative accuracy improvement of CT over LoRA: {rel_improve_lora * 100:.2f}%')
+
+    # ============
+    # Save results
+    # ============
+    os.makedirs('./ckpts', exist_ok=True)
+    os.makedirs('./results', exist_ok=True)
+
+    # Save checkpoints of best models
+    ct_ckpt_path = f'./ckpts/train_ct_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.pth'
+    torch.save(ct_model.state_dict(), ct_ckpt_path)
+    logger.info(f'[CT] Model saved to {ct_ckpt_path}')
+
     lora_ckpt_path = f'./ckpts/lora_rank{lora_rank}_{args.pretrained_ds}_to_{transfer_ds_alias}_{args.model}_seed{args.seed}.pth'
     torch.save(lora_model.state_dict(), lora_ckpt_path)
     logger.info(f'[LoRA] Model saved to {lora_ckpt_path}')
 
-    # Log the summary
-    logger.info(f'Trainable CT model trainable parameters: {num_params_ct}')
-    logger.info(f'LoRA model trainable parameters: {num_params_lora}')
-    logger.info(f'Trainable CT params/LoRA params: {num_params_ct / num_params_lora:.2f}')
-    rel_improve_lora = (ct_acc - lora_acc) / lora_acc
-    logger.info(f'Trainable CT Accuracy: {ct_acc:.2f}%')
-    logger.info(f'LoRA Accuracy: {lora_acc:.2f}%')
-    logger.info(f'Relative accuracy improvement over LoRA: {rel_improve_lora * 100:.2f}%')
-    mean_beta, mean_coeff = get_mean_beta_and_coeff(ct_model)
-    logger.info(f'Mean Beta: {mean_beta:.6f}, Mean Coeff: {mean_coeff:.6f}')
-
-    # Save the results
-    os.makedirs('./results', exist_ok=True)
-
+    # Save the results JSON (unified best_lr key)
     save_result_json(
         result_path['train_ct'],
-        num_params_ct, ct_acc, beta=mean_beta, coeff=mean_coeff, best_ct_lr=ct_best_lr)
+        num_params_ct, ct_acc, beta=mean_beta, coeff=mean_coeff, best_ct_lr=ct_best_lr
+    )
     save_result_json(
         result_path['lora'],
-        num_params_lora, lora_acc, best_lr=lora_best_lr)
+        num_params_lora, lora_acc, best_lr=lora_best_lr
+    )
     logger.info('Results saved to ./results/')
 
 
