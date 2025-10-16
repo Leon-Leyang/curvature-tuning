@@ -84,7 +84,7 @@ if __name__ == "__main__":
             if 'base' in m and m['base'] != 0 and 'train_ct' in m:
                 ct_to_base_rels.append(100.0 * (m['train_ct'] - m['base']) / m['base'])
         if ct_to_base_rels:
-            print(f"Trainable CT avg REL improvement: {np.mean(ct_to_base_rels):.2f}%")
+            print(f"Trainable CT to Baseline avg REL improvement: {np.mean(ct_to_base_rels):.2f}%")
 
         # LoRA to base
         lora_to_base_rels = []
@@ -92,7 +92,7 @@ if __name__ == "__main__":
             if 'base' in m and m['base'] != 0 and 'lora_rank1_alpha1' in m:
                 lora_to_base_rels.append(100.0 * (m['lora_rank1_alpha1'] - m['base']) / m['base'])
         if lora_to_base_rels:
-            print(f"LoRA avg REL improvement: {np.mean(lora_to_base_rels):.2f}%")
+            print(f"LoRA to Baseline avg REL improvement: {np.mean(lora_to_base_rels):.2f}%")
 
         # Trainable CT to LoRA
         ct_to_lora_rels = []
