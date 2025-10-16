@@ -60,8 +60,7 @@ if __name__ == "__main__":
                 params = method_metrics[method]['num_params']
                 averaged_data[f"{method}_accuracy"] = np.mean(accs)
                 averaged_data[f"{method}_accuracy_std"] = np.std(accs)
-                averaged_data[f"{method}_num_params"] = np.mean(params)
-                averaged_data[f"{method}_num_params_std"] = np.std(params)
+                averaged_data[f"{method}_num_params"] = params[0]
 
             result = {
                 'num_params_ratio': averaged_data['train_ct_num_params'] / averaged_data['lora_rank1_num_params'],
