@@ -70,6 +70,7 @@ if __name__ == "__main__":
 
             if beta_list:
                 avg_beta = np.mean(beta_list)
+                std_beta = np.std(beta_list)
                 ct_beta_values[transfer_ds] = avg_beta
             else:
                 avg_beta = None
@@ -91,7 +92,8 @@ if __name__ == "__main__":
                                           averaged_data['lora_rank1_accuracy'],
                 'ct_better_than_base': averaged_data['ct_accuracy'] > averaged_data['base_accuracy'],
                 'ct_better_than_lora': averaged_data['ct_accuracy'] > averaged_data['lora_rank1_accuracy'],
-                'avg_beta': avg_beta
+                'avg_beta': avg_beta,
+                'std_beta': std_beta,
             }
 
             result_dict[transfer_ds] = result
@@ -104,8 +106,8 @@ if __name__ == "__main__":
                 acc_std = averaged_data[f'{method}_accuracy_std']
                 param_mean = averaged_data[f'{method}_num_params']
                 print(f"{method}: acc = {acc_mean:.2f} ± {acc_std:.2f}, params = {param_mean}")
-            if avg_beta is not None:
-                print(f"ct beta: {avg_beta:.2f}")
+            if avg_beta is not None and std_beta is not None:
+                print(f"ct beta: {avg_beta:.2f} ± {std_beta:.2f}")
             print()
 
         # Summarize across datasets
