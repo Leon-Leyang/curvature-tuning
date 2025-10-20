@@ -98,6 +98,6 @@ if __name__ == "__main__":
             alphas = overall_stats[method]['alpha_rank_ratios']
             if accs:
                 print(f"{method}:")
-                print(f"  Accuracy: {np.mean(accs):.2f} ± {np.std(accs):.2f}")
+                print(f"  Accuracy: {np.mean(accs):.2f}")
                 print(f"  Best alpha rank ratio: {np.mean(alphas):.2f} ± {np.std(alphas):.2f}")
         print()
