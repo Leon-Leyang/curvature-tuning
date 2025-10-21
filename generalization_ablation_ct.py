@@ -74,7 +74,7 @@ def main():
     criterion = nn.CrossEntropyLoss()
 
     # Test the model with SiLU
-    beta_range = np.arange(0.7, 1.0 - 1e-6, 0.01)
+    beta_range = np.arange(0.7, 1.0 + 1e-6, 0.01)
 
     identifier = f'silu_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}'
     wandb.init(
@@ -132,7 +132,7 @@ def main():
     wandb.finish()
 
     # Test the model with Softplus
-    beta_range = np.arange(0.7, 1.0 - 1e-6, 0.01)
+    beta_range = np.arange(0.7, 1.0 + 1e-6, 0.01)
 
     identifier = f'softplus_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}'
     wandb.init(

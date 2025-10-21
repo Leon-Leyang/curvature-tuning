@@ -130,7 +130,7 @@ def main():
     base_acc *= 100
     logger.info(f'Robust accuracy: {base_acc:.2f}%')
 
-    beta_range = np.arange(0.7, 1.0 - 1e-6, 0.01)
+    beta_range = np.arange(0.7, 1.0 + 1e-6, 0.01)
     best_acc = -1
     best_beta = None
     acc_list = []

@@ -97,7 +97,7 @@ def main():
     wandb.finish()
 
     # Test the model with CT
-    beta_range = np.arange(0.7, 1.0 - 1e-6, 0.01)
+    beta_range = np.arange(0.7, 1.0 + 1e-6, 0.01)
 
     identifier = f'ct_{args.pretrained_ds}_to_{args.transfer_ds}_{args.model}_seed{args.seed}'
     wandb.init(
