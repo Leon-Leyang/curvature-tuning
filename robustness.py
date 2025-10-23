@@ -10,7 +10,7 @@ from torch import nn as nn
 from torchvision import transforms as transforms
 from utils.robustbench import benchmark
 from utils.utils import get_pretrained_model, get_file_name, fix_seed, set_logger
-from utils.curvature_tuning import replace_module, CTU
+from utils.curvature_tuning import replace_module, SteeringCTU
 from loguru import logger
 import copy
 import argparse
@@ -140,7 +140,7 @@ def main():
         state_path = Path(f"./cache/{args.threat}_{args.dataset}_sample{args.n_examples}_{args.model}_beta{beta:.2f}_seed{args.seed}.json")
         shared_raw_beta = nn.Parameter(torch.logit(torch.tensor(beta)), requires_grad=False)
         shared_raw_coeff = nn.Parameter(torch.tensor(0.0), requires_grad=False)
-        ct_model = replace_module(copy.deepcopy(model), old_module=nn.ReLU, new_module=CTU,
+        ct_model = replace_module(copy.deepcopy(model), old_module=nn.ReLU, new_module=SteeringCTU,
                                   shared_raw_beta=shared_raw_beta, shared_raw_coeff=shared_raw_coeff).to(device)
         _, test_acc = benchmark(
             ct_model, dataset=args.dataset, threat_model=args.threat, eps=THREAT_TO_EPS[args.threat], device=device,

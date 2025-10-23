@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from io import BytesIO
 from PIL import Image
 from utils.utils import MLP, fix_seed
-from utils.curvature_tuning import replace_module, CTU
+from utils.curvature_tuning import replace_module, SteeringCTU
 
 
 def generate_spiral_data(n_points, noise=0.5, n_turns=3, label_flip=0.05):
@@ -113,7 +113,7 @@ def run_experiment(width=20, depth=2, training_steps=2000, beta_vals=None,
         model = copy.deepcopy(base_model)
         shared_raw_beta = nn.Parameter(torch.logit(torch.tensor(beta)), requires_grad=False)
         shared_raw_coeff = nn.Parameter(torch.logit(torch.tensor(coeff)), requires_grad=False)
-        model = replace_module(model, old_module=nn.ReLU, new_module=CTU,
+        model = replace_module(model, old_module=nn.ReLU, new_module=SteeringCTU,
                                shared_raw_beta=shared_raw_beta, shared_raw_coeff=shared_raw_coeff).to(device)
 
         with torch.no_grad():

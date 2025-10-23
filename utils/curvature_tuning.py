@@ -7,9 +7,9 @@ from torch import nn
 import torch.nn.functional as F
 
 
-class CTU(nn.Module):
+class SteeringCTU(nn.Module):
     """
-    CTU for CT.
+    CTU for Steering CT.
     """
     def __init__(self, shared_raw_beta, shared_raw_coeff, threshold=20):
         super().__init__()
@@ -80,7 +80,7 @@ class TrainableCTU(nn.Module):
                 (1 - coeff) * F.softplus(x_scaled, threshold=self.threshold) * one_minus_beta)
 
 
-def replace_module(model, old_module=nn.ReLU, new_module=CTU, **kwargs):
+def replace_module(model, old_module=nn.ReLU, new_module=SteeringCTU, **kwargs):
     """
     Replace all instances of old_module in the model with new_module.
     """
