@@ -4,7 +4,7 @@ import copy
 import os
 from utils.utils import get_pretrained_model
 from utils.data import DATASET_TO_NUM_CLASSES
-from utils.curvature_tuning import replace_module_dynamic, TrainableCTU
+from utils.curvature_tuning import replace_module_dynamic, TCTU
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -19,7 +19,7 @@ def get_beta_and_coeff(model):
     coeff_vals = []
 
     for module in model.modules():
-        if isinstance(module, TrainableCTU):
+        if isinstance(module, TCTU):
             beta = module.beta.detach().flatten()
             coeff = module.coeff.detach().flatten()
             assert 0 <= beta.min() <= beta.max() <= 1
@@ -133,7 +133,7 @@ if __name__ == "__main__":
 
             dummy_input_shape = (1, 3, 224, 224)
             ct_model = replace_module_dynamic(copy.deepcopy(model), dummy_input_shape, old_module=nn.ReLU,
-                                              new_module=TrainableCTU).to(device)
+                                              new_module=TCTU).to(device)
 
             for seed in seeds:
                 file_path = f'./ckpts/train_ct_{pretrained_ds}_to_{transfer_ds.replace("/", "-")}_{model_name}_seed{seed}.pth'

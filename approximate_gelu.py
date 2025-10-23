@@ -2,11 +2,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
-from utils.curvature_tuning import TrainableCTU
+from utils.curvature_tuning import TCTU
 
 
 # Initialize
-ctu = TrainableCTU(num_input_dims=2, out_channels=1, raw_beta=0.5322, raw_coeff=10)
+ctu = TCTU(num_input_dims=2, out_channels=1, raw_beta=0.5322, raw_coeff=10)
 gelu = nn.GELU()
 optimizer = torch.optim.Adam(ctu.parameters(), lr=1e-3)
 

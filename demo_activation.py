@@ -2,7 +2,7 @@ import torch
 import matplotlib.pyplot as plt
 from matplotlib.cm import magma
 from matplotlib.colors import BoundaryNorm, ListedColormap
-from utils.curvature_tuning import SteeringCTU
+from utils.curvature_tuning import SCTU
 import numpy as np
 
 # Setup
@@ -25,7 +25,7 @@ for ax, coeff, title in zip(axes, coeffs, titles):
     for beta in betas:
         raw_beta = torch.tensor(float('-inf') if beta == 0 else (float('inf') if beta == 1 else torch.logit(torch.tensor(beta))))
         raw_coeff = torch.tensor(float('-inf') if coeff == 0 else (float('inf') if coeff == 1 else torch.logit(torch.tensor(coeff))))
-        activation = SteeringCTU(shared_raw_beta=raw_beta, shared_raw_coeff=raw_coeff)
+        activation = SCTU(shared_raw_beta=raw_beta, shared_raw_coeff=raw_coeff)
         y = activation(x)
         color = base_cmap(0.9 - 0.9 * beta.item())
         ax.plot(x, y, color=color, linewidth=1)

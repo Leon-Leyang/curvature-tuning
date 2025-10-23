@@ -4,7 +4,7 @@ This file plots our CTU for different values of beta.
 import os
 import torch
 import matplotlib.pyplot as plt
-from utils.curvature_tuning import SteeringCTU
+from utils.curvature_tuning import SCTU
 
 
 # Create a set of x-values over which to evaluate the activation
@@ -21,7 +21,7 @@ for idx, b in enumerate(betas):
     # Instantiate CT with the current beta
     raw_beta = torch.logit(torch.tensor(b))
     raw_coeff = torch.logit(torch.tensor(0.5))
-    activation = SteeringCTU(shared_raw_beta=raw_beta, shared_raw_coeff=raw_coeff)
+    activation = SCTU(shared_raw_beta=raw_beta, shared_raw_coeff=raw_coeff)
 
     # Forward pass: compute the output for all x_vals
     with torch.no_grad():  # no need for gradients when just plotting

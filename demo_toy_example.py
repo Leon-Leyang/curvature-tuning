@@ -8,7 +8,7 @@ import torch.nn as nn
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from utils.utils import MLP, get_file_name, fix_seed, set_logger, get_log_file_path
-from utils.curvature_tuning import replace_module_dynamic, TrainableCTU
+from utils.curvature_tuning import replace_module_dynamic, TCTU
 from utils.lora import get_lora_model
 from loguru import logger
 import numpy as np
@@ -178,7 +178,7 @@ def plot_classification_bond(
     # Plot for CT
     dummy_input_shape = (1, 2)
     ct_model = replace_module_dynamic(copy.deepcopy(baseline_model), dummy_input_shape, old_module=nn.ReLU,
-                                      new_module=TrainableCTU, raw_beta=torch.logit(torch.tensor(init_beta)).item()).to(device)
+                                      new_module=TCTU, raw_beta=torch.logit(torch.tensor(init_beta)).item()).to(device)
     ct_loss = train(ct_model, points, target, training_steps=finetune_step)
 
     if ct_loss > lora_loss or lora_loss > base_loss:

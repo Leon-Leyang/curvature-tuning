@@ -9,7 +9,7 @@ import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from utils.utils import MLP, get_file_name, fix_seed, set_logger, get_log_file_path
-from utils.curvature_tuning import replace_module, SteeringCTU
+from utils.curvature_tuning import replace_module, SCTU
 from loguru import logger
 
 
@@ -83,7 +83,7 @@ def plot_classification(
         else:
             shared_raw_beta = nn.Parameter(torch.logit(torch.tensor(beta)), requires_grad=False)
             shared_raw_coeff = nn.Parameter(torch.logit(torch.tensor(0.5)), requires_grad=False)
-            model = replace_module(copy.deepcopy(relu_model), old_module=nn.ReLU, new_module=SteeringCTU,
+            model = replace_module(copy.deepcopy(relu_model), old_module=nn.ReLU, new_module=SCTU,
                                    shared_raw_beta=shared_raw_beta, shared_raw_coeff=shared_raw_coeff).to(device)
 
         with torch.no_grad():

@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from io import BytesIO
 from PIL import Image
 from utils.utils import MLP, get_file_name, fix_seed, set_logger
-from utils.curvature_tuning import replace_module, SteeringCTU
+from utils.curvature_tuning import replace_module, SCTU
 
 
 def generate_curve_data(n_points, noise=0.1):
@@ -73,7 +73,7 @@ def run_regression_experiment(width=64, depth=8, training_steps=20000, beta_vals
         model = copy.deepcopy(base_model)
         shared_raw_beta = nn.Parameter(torch.logit(torch.tensor(beta)), requires_grad=False)
         shared_raw_coeff = nn.Parameter(torch.logit(torch.tensor(coeff)), requires_grad=False)
-        model = replace_module(model, old_module=nn.ReLU, new_module=SteeringCTU,
+        model = replace_module(model, old_module=nn.ReLU, new_module=SCTU,
                                shared_raw_beta=shared_raw_beta, shared_raw_coeff=shared_raw_coeff).to(device)
         with torch.no_grad():
             pred = model(x_range_torch).squeeze().cpu().numpy()

@@ -8,7 +8,7 @@ from torch import nn as nn
 from utils.robustbench import benchmark
 from utils.utils import get_pretrained_model, get_file_name, fix_seed, set_logger
 from utils.data import DATASET_TO_NUM_CLASSES, get_data_loaders
-from utils.curvature_tuning import TrainableCTU, replace_module_dynamic, get_mean_beta_and_coeff
+from utils.curvature_tuning import TCTU, replace_module_dynamic, get_mean_beta_and_coeff
 from utils.lora import get_lora_model
 from generalization_trainable_ct import transfer
 from loguru import logger
@@ -52,14 +52,14 @@ def main():
             {'baseline': f'./robust_results/base_linf_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json',
             'train_ct': f'./robust_results/train_ct_linf_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json',
             'lora': f'./robust_results/lora_rank{lora_rank}_alpha{lora_alpha}_linf_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json'},
-        # 'L2':
-        #     {'baseline': f'./robust_results/base_l2_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json',
-        #     'train_ct': f'./robust_results/train_ct_l2_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json',
-        #     'lora': f'./robust_results/lora_rank{lora_rank}_alpha{lora_alpha}_l2_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json'},
-        # 'corruptions':
-        #     {'baseline': f'./robust_results/base_corruptions_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json',
-        #     'train_ct': f'./robust_results/train_ct_corruptions_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json',
-        #     'lora': f'./robust_results/lora_rank{lora_rank}_alpha{lora_alpha}_corruptions_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json'},
+        'L2':
+            {'baseline': f'./robust_results/base_l2_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json',
+            'train_ct': f'./robust_results/train_ct_l2_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json',
+            'lora': f'./robust_results/lora_rank{lora_rank}_alpha{lora_alpha}_l2_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json'},
+        'corruptions':
+            {'baseline': f'./robust_results/base_corruptions_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json',
+            'train_ct': f'./robust_results/train_ct_corruptions_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json',
+            'lora': f'./robust_results/lora_rank{lora_rank}_alpha{lora_alpha}_corruptions_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json'},
     }
 
     state_path = {
@@ -67,14 +67,14 @@ def main():
             {'baseline': Path(f"./cache/base_linf_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json"),
             'train_ct': Path(f"./cache/train_ct_linf_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json"),
             'lora': Path(f"./cache/lora_rank{lora_rank}_alpha{lora_alpha}_linf_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json")},
-        # 'L2':
-        #     {'baseline': Path(f"./cache/base_l2_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json"),
-        #     'train_ct': Path(f"./cache/train_ct_l2_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json"),
-        #     'lora': Path(f"./cache/lora_rank{lora_rank}_alpha{lora_alpha}_l2_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json")},
-        # 'corruptions':
-        #     {'baseline': Path(f"./cache/base_corruptions_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json"),
-        #     'train_ct': Path(f"./cache/train_ct_corruptions_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json"),
-        #     'lora': Path(f"./cache/lora_rank{lora_rank}_alpha{lora_alpha}_corruptions_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json")},
+        'L2':
+            {'baseline': Path(f"./cache/base_l2_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json"),
+            'train_ct': Path(f"./cache/train_ct_l2_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json"),
+            'lora': Path(f"./cache/lora_rank{lora_rank}_alpha{lora_alpha}_l2_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json")},
+        'corruptions':
+            {'baseline': Path(f"./cache/base_corruptions_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json"),
+            'train_ct': Path(f"./cache/train_ct_corruptions_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json"),
+            'lora': Path(f"./cache/lora_rank{lora_rank}_alpha{lora_alpha}_corruptions_{dataset}_sample{args.n_examples}_{args.model}_seed{args.seed}.json")},
     }
 
     # Check if all paths exist
@@ -131,7 +131,7 @@ def main():
     )
     dummy_input_shape = (1, 3, 224, 224)
     ct_model = replace_module_dynamic(copy.deepcopy(model), dummy_input_shape, old_module=nn.ReLU,
-                                      new_module=TrainableCTU).to(device)
+                                      new_module=TCTU).to(device)
     ct_model = transfer(ct_model, train_loader, val_loader)
     mean_beta, mean_coeff = get_mean_beta_and_coeff(ct_model)
     logger.info(f'Mean Beta: {mean_beta:.6f}, Mean Coeff: {mean_coeff:.6f}')

@@ -7,7 +7,7 @@ from torch import nn
 import torch.nn.functional as F
 
 
-class SteeringCTU(nn.Module):
+class SCTU(nn.Module):
     """
     CTU for Steering CT.
     """
@@ -37,7 +37,7 @@ class SteeringCTU(nn.Module):
                 (1 - coeff) * F.softplus(x_scaled, threshold=self.threshold) * one_minus_beta)
 
 
-class TrainableCTU(nn.Module):
+class TCTU(nn.Module):
     """
     CTU for Trainable CT.
     """
@@ -80,7 +80,7 @@ class TrainableCTU(nn.Module):
                 (1 - coeff) * F.softplus(x_scaled, threshold=self.threshold) * one_minus_beta)
 
 
-def replace_module(model, old_module=nn.ReLU, new_module=SteeringCTU, **kwargs):
+def replace_module(model, old_module=nn.ReLU, new_module=SCTU, **kwargs):
     """
     Replace all instances of old_module in the model with new_module.
     """
@@ -109,7 +109,7 @@ def replace_module(model, old_module=nn.ReLU, new_module=SteeringCTU, **kwargs):
     return model
 
 
-def replace_module_dynamic(model, input_shape, old_module=nn.ReLU, new_module=TrainableCTU, **kwargs):
+def replace_module_dynamic(model, input_shape, old_module=nn.ReLU, new_module=TCTU, **kwargs):
     """
     Replace all instances of old_module in the model with new_module that is dynamically created based on the number of output channels.
     """
@@ -176,7 +176,7 @@ def get_mean_beta_and_coeff(model):
     coeff_vals = []
 
     for module in model.modules():
-        if isinstance(module, TrainableCTU):
+        if isinstance(module, TCTU):
             beta = module.beta.detach().flatten()
             coeff = module.coeff.detach().flatten()
             assert 0 <= beta.min() <= beta.max() <= 1

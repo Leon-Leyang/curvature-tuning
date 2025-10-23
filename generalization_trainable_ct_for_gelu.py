@@ -13,7 +13,7 @@ from torch import nn as nn
 from torch import optim
 from utils.data import get_data_loaders, DATASET_TO_NUM_CLASSES
 from utils.utils import get_pretrained_model, get_file_name, fix_seed, set_logger, save_result_json
-from utils.curvature_tuning import TrainableCTU, replace_module_dynamic, get_mean_beta_and_coeff
+from utils.curvature_tuning import TCTU, replace_module_dynamic, get_mean_beta_and_coeff
 from utils.lora import get_lora_model
 from train import train_epoch, test_epoch, WarmUpLR
 from loguru import logger
@@ -33,7 +33,7 @@ def transfer(model, train_loader, val_loader, lr=1e-3, ct_lr=1e-1):
     other_params = []
 
     for module in model.modules():
-        if isinstance(module, TrainableCTU):
+        if isinstance(module, TCTU):
             ct_params += [p for p in module.parameters() if p.requires_grad]
         else:
             other_params += [p for p in module.parameters() if p.requires_grad]
@@ -140,7 +140,7 @@ def main():
         copy.deepcopy(model),
         dummy_input_shape,
         old_module=nn.GELU,
-        new_module=TrainableCTU,
+        new_module=TCTU,
         raw_beta=0.5767,
         raw_coeff=10.0
     ).cpu()  # ensure CPU

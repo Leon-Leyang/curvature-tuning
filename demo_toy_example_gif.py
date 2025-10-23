@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from io import BytesIO
 from PIL import Image
 from utils.utils import MLP, get_file_name, fix_seed, set_logger, get_log_file_path
-from utils.curvature_tuning import replace_module_dynamic, TrainableCTU
+from utils.curvature_tuning import replace_module_dynamic, TCTU
 from utils.lora import get_lora_model
 
 def generate_circular_data(n_points):
@@ -115,7 +115,7 @@ def plot_classification_gif(width=10, depth=1, training_steps=4000, finetune_ste
     lora_frames = train_with_frames(lora_model, points, target, finetune_step, grid, xx, yy, mesh_dim, color_map, "LoRA")
 
     ct_model = replace_module_dynamic(copy.deepcopy(baseline_model), (1, 2), old_module=nn.ReLU,
-                                      new_module=TrainableCTU, raw_beta=torch.logit(torch.tensor(init_beta)).item()).to(device)
+                                      new_module=TCTU, raw_beta=torch.logit(torch.tensor(init_beta)).item()).to(device)
     ct_frames = train_with_frames(ct_model, points, target, finetune_step, grid, xx, yy, mesh_dim, color_map, "CT")
 
     combined_frames = []
