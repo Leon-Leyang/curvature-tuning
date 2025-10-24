@@ -116,23 +116,25 @@ if __name__ == "__main__":
     os.makedirs('./stats-figures', exist_ok=True)
 
     count = 0
+
+    pretrained_ds = 'imagenet'
+
     for model_name in model_list:
-        pretrained_ds = 'imagenette' if 'swin' in model_name else 'imagenet'
         model = get_pretrained_model(pretrained_ds, model_name)
 
         for transfer_ds in dataset_list:
             beta_vals_all_seeds = []
             coeff_vals_all_seeds = []
 
-            if 'swin' not in model_name:
-                model.fc = nn.Linear(in_features=model.fc.in_features,
-                                     out_features=DATASET_TO_NUM_CLASSES[transfer_ds]).to(device)
+            if 'swin' in model_name:
+                model.head = nn.Linear(in_features=model.head.in_features,
+                                       out_features=DATASET_TO_NUM_CLASSES[transfer_ds]).to(device)
             elif 'vgg' in model_name:
                 model.classifier[-1] = nn.Linear(in_features=model.classifier[-1].in_features,
                                                  out_features=DATASET_TO_NUM_CLASSES[transfer_ds]).to(device)
             else:
-                model.head = nn.Linear(in_features=model.head.in_features,
-                                       out_features=DATASET_TO_NUM_CLASSES[transfer_ds]).to(device)
+                model.fc = nn.Linear(in_features=model.fc.in_features,
+                                     out_features=DATASET_TO_NUM_CLASSES[transfer_ds]).to(device)
 
             dummy_input_shape = (1, 3, 224, 224)
             ct_model = replace_module_dynamic(copy.deepcopy(model), dummy_input_shape, old_module=nn.ReLU,
