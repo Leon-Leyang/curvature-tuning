@@ -96,7 +96,7 @@ if __name__ == "__main__":
     plt.rcParams.update({'pdf.fonttype': 42})
     plt.rcParams.update({'ps.fonttype': 42})
 
-    model_list = ['resnet18', 'resnet50', 'resnet152', 'swin_t', 'swin_s']
+    model_list = ['resnet18', 'resnet50', 'resnet152', 'vgg11', 'swin_t', 'swin_s']
     dataset_list = [
         "arabic-characters",
         "arabic-digits",
@@ -127,6 +127,9 @@ if __name__ == "__main__":
             if 'swin' not in model_name:
                 model.fc = nn.Linear(in_features=model.fc.in_features,
                                      out_features=DATASET_TO_NUM_CLASSES[transfer_ds]).to(device)
+            elif 'vgg' in model_name:
+                model.classifier[-1] = nn.Linear(in_features=model.classifier[-1].in_features,
+                                                 out_features=DATASET_TO_NUM_CLASSES[transfer_ds]).to(device)
             else:
                 model.head = nn.Linear(in_features=model.head.in_features,
                                        out_features=DATASET_TO_NUM_CLASSES[transfer_ds]).to(device)
