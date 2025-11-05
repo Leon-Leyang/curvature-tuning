@@ -138,7 +138,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--width", type=int, default=10)
+    parser.add_argument("--width", type=int, default=7)
     parser.add_argument("--depth", type=int, default=1)
     parser.add_argument("--training_steps", type=int, default=4000)
     parser.add_argument("--finetune_step", type=int, default=4000)
