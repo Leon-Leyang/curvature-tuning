@@ -102,7 +102,7 @@ def plot_classification_gif(width=10, depth=1, training_steps=4000, finetune_ste
     num_frames = finetune_step // 40 + 2
     color_map = [cmap(0.4 * i / (num_frames - 1)) for i in range(num_frames)]
 
-    baseline_frame = render_frame(points, target, xx, yy, pred_base, mesh_dim, color_map[0], step="Finetune Step = 0", method_name="Baseline", add_title=True)
+    baseline_frame = render_frame(points, target, xx, yy, pred_base, mesh_dim, color_map[0], step="", method_name="Pretrained Model", add_title=True)
 
     os.makedirs('./figures', exist_ok=True)
     log_name = get_file_name(get_log_file_path())
