@@ -174,3 +174,4 @@ robust_results/
 stats-figures/
 submitit/
 val-acc-figures/
+.DS_Store
